@@ -4,6 +4,7 @@ import type {
   CheckResult,
   CommandOutput,
   ExecutionHistoryEntry,
+  LatestResultState,
   UpdateResult,
 } from '../types/app';
 
@@ -12,6 +13,9 @@ export const loadConfig = async (): Promise<AppConfig> => invoke('load_config');
 export const saveConfig = async (config: AppConfig): Promise<void> => {
   await invoke('save_config', { config });
 };
+
+export const loadLatestResults = async (): Promise<LatestResultState> =>
+  invoke('load_latest_results');
 
 export const checkItem = async (itemId: string): Promise<CheckResult> =>
   invoke('check_item', { itemId });

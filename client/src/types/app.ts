@@ -18,6 +18,7 @@ export interface AppConfig {
   check_interval_minutes: number;
   command_timeout_seconds: number;
   theme_mode: ThemeMode;
+  auto_check_enabled: boolean;
   shared_update_commands: string[];
   items: SoftwareItem[];
 }
@@ -30,6 +31,20 @@ export interface CheckResult {
   latest_version: string | null;
   details: string;
   error: string | null;
+}
+
+export interface LatestResultSnapshot {
+  item_id: string;
+  checked_at: string;
+  has_update: boolean;
+  current_version: string | null;
+  latest_version: string | null;
+  error: string | null;
+}
+
+export interface LatestResultState {
+  updated_at: string;
+  items: Record<string, LatestResultSnapshot>;
 }
 
 export interface CommandOutput {

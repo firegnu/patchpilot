@@ -2,6 +2,7 @@
   "check_interval_minutes": 480,
   "command_timeout_seconds": 30,
   "theme_mode": "system",
+  "auto_check_enabled": true,
   "shared_update_commands": [
     "brew update",
     "brew upgrade --dry-run"

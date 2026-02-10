@@ -83,7 +83,7 @@ fn config_path_from_current_dir() -> Option<PathBuf> {
     None
 }
 
-fn resolve_config_path(app: &AppHandle) -> Result<PathBuf, String> {
+pub fn resolve_config_path(app: &AppHandle) -> Result<PathBuf, String> {
     if let Some(path) = config_path_from_current_dir() {
         return Ok(path);
     }

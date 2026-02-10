@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
 fn default_command_timeout_seconds() -> u64 {
@@ -6,6 +8,10 @@ fn default_command_timeout_seconds() -> u64 {
 
 fn default_theme_mode() -> String {
     "system".to_string()
+}
+
+fn default_auto_check_enabled() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -29,6 +35,8 @@ pub struct AppConfig {
     pub command_timeout_seconds: u64,
     #[serde(default = "default_theme_mode")]
     pub theme_mode: String,
+    #[serde(default = "default_auto_check_enabled")]
+    pub auto_check_enabled: bool,
     pub shared_update_commands: Vec<String>,
     pub items: Vec<SoftwareItem>,
 }
@@ -52,6 +60,23 @@ pub struct CheckResult {
     pub latest_version: Option<String>,
     pub details: String,
     pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LatestResultSnapshot {
+    pub item_id: String,
+    pub checked_at: String,
+    pub has_update: bool,
+    pub current_version: Option<String>,
+    pub latest_version: Option<String>,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LatestResultState {
+    pub updated_at: String,
+    #[serde(default)]
+    pub items: HashMap<String, LatestResultSnapshot>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -85,6 +110,7 @@ impl Default for AppConfig {
             check_interval_minutes: 480,
             command_timeout_seconds: default_command_timeout_seconds(),
             theme_mode: default_theme_mode(),
+            auto_check_enabled: default_auto_check_enabled(),
             shared_update_commands: vec!["brew update".to_string(), "brew upgrade".to_string()],
             items: vec![
                 SoftwareItem {
@@ -230,6 +256,15 @@ impl Default for AppConfig {
                             .to_string(),
                 },
             ],
+        }
+    }
+}
+
+impl Default for LatestResultState {
+    fn default() -> Self {
+        Self {
+            updated_at: chrono::Utc::now().to_rfc3339(),
+            items: HashMap::new(),
         }
     }
 }

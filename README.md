@@ -10,6 +10,7 @@ PatchPilot 是一个 macOS menubar 桌面应用（Tauri + React），用于集�
 ## 功能概览
 
 - 托盘应用常驻，主窗口关闭时隐藏到 menubar。
+- menubar 菜单支持高频操作（分区检查、快捷更新、主题/频率切换）。
 - 按配置检查软件是否有更新（支持“版本对比”或“命令输出匹配”两种模式）。
 - 对单个软件执行更新命令（执行前确认）。
 - 支持共享维护命令（例如 `brew update`、`brew upgrade`）。
@@ -62,6 +63,7 @@ PatchPilot/
 前端通过 `@tauri-apps/api/core` 的 `invoke` 调用 Rust 命令：
 - `load_config`
 - `save_config`
+- `load_latest_results`
 - `check_item`
 - `check_all`
 - `check_auto_cli_items`
@@ -119,6 +121,7 @@ PatchPilot/
   "check_interval_minutes": 480,
   "command_timeout_seconds": 120,
   "theme_mode": "system",
+  "auto_check_enabled": true,
   "shared_update_commands": ["brew update", "brew upgrade"],
   "items": [
     {

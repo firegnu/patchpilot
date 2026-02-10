@@ -9,7 +9,7 @@ use crate::model::ExecutionHistoryEntry;
 const HISTORY_FILE: &str = "execution-history.json";
 const HISTORY_LIMIT: usize = 200;
 
-fn history_path(app: &AppHandle) -> Result<PathBuf, String> {
+pub fn history_path(app: &AppHandle) -> Result<PathBuf, String> {
     let app_dir = app
         .path()
         .app_config_dir()

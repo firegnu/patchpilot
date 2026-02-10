@@ -13,6 +13,9 @@ export const validateConfig = (config: AppConfig): string | null => {
   if (!['light', 'dark', 'system'].includes(config.theme_mode)) {
     return 'theme_mode 仅支持 light / dark / system';
   }
+  if (typeof config.auto_check_enabled !== 'boolean') {
+    return 'auto_check_enabled 必须是 boolean';
+  }
   return null;
 };
 
@@ -24,6 +27,7 @@ export const normalizeConfig = (payload: Partial<AppConfig>): AppConfig => ({
     payload.theme_mode === 'light' || payload.theme_mode === 'dark' || payload.theme_mode === 'system'
       ? payload.theme_mode
       : 'system',
+  auto_check_enabled: typeof payload.auto_check_enabled === 'boolean' ? payload.auto_check_enabled : true,
   shared_update_commands: payload.shared_update_commands ?? [],
   items: payload.items ?? [],
 });

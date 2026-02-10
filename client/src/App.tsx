@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { listen } from '@tauri-apps/api/event';
 import MonitorPanel from './components/MonitorPanel';
 import SharedCommandsPanel from './components/SharedCommandsPanel';
 import {
@@ -8,6 +9,7 @@ import {
   checkItem,
   loadConfig,
   loadHistory,
+  loadLatestResults,
   runAdHocCommand,
   runItemUpdate,
   saveConfig,
@@ -18,6 +20,21 @@ import type { AppConfig, CheckResult, ExecutionHistoryEntry, SoftwareItem, Theme
 const formatError = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 const themeModeLabel = (mode: ThemeMode): string => ({ system: '跟随系统', light: '浅色', dark: '深色' })[mode];
 const isManualItem = (item: SoftwareItem): boolean => item.id === 'brew' || item.id === 'bun';
+const mapLatestResultsToResultMap = (items: Record<string, { item_id: string; checked_at: string; has_update: boolean; current_version: string | null; latest_version: string | null; error: string | null }>): Record<string, CheckResult> => {
+  const next: Record<string, CheckResult> = {};
+  Object.values(items).forEach((value) => {
+    next[value.item_id] = {
+      item_id: value.item_id,
+      checked_at: value.checked_at,
+      has_update: value.has_update,
+      current_version: value.current_version,
+      latest_version: value.latest_version,
+      details: 'latest snapshot',
+      error: value.error,
+    };
+  });
+  return next;
+};
 export default function App() {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [message, setMessage] = useState('正在加载配置...');
@@ -58,9 +75,18 @@ export default function App() {
       console.error('加载历史失败', error);
     }
   };
+  const refreshLatestResults = async (): Promise<void> => {
+    try {
+      const latest = await loadLatestResults();
+      setResultMap(mapLatestResultsToResultMap(latest.items));
+    } catch (error) {
+      console.error('加载最近检查结果失败', error);
+    }
+  };
   const reloadConfig = async (): Promise<void> => {
     const nextConfig = normalizeConfig((await loadConfig()) as Partial<AppConfig>);
     setConfig(nextConfig);
+    await refreshLatestResults();
     await refreshHistory();
     setMessage('配置已加载。');
   };
@@ -69,11 +95,34 @@ export default function App() {
   }, []);
   useEffect(() => (config ? applyThemeMode(config.theme_mode) : undefined), [config?.theme_mode]);
   useEffect(() => {
-    if (!config) return;
+    if (!config || !config.auto_check_enabled) return;
     void handleAutoCheckCycle();
     const timer = setInterval(() => void handleAutoCheckCycle(), Math.max(config.check_interval_minutes, 1) * 60 * 1000);
     return () => clearInterval(timer);
   }, [config]);
+  useEffect(() => {
+    let unlistenConfig: (() => void) | undefined;
+    let unlistenLatest: (() => void) | undefined;
+    let unlistenHistory: (() => void) | undefined;
+
+    void (async () => {
+      unlistenConfig = await listen('patchpilot://config-updated', () => {
+        void reloadConfig();
+      });
+      unlistenLatest = await listen('patchpilot://latest-results-updated', () => {
+        void refreshLatestResults();
+      });
+      unlistenHistory = await listen('patchpilot://history-updated', () => {
+        void refreshHistory();
+      });
+    })();
+
+    return () => {
+      unlistenConfig?.();
+      unlistenLatest?.();
+      unlistenHistory?.();
+    };
+  }, []);
   const setAutoItemsChecking = (itemIds: string[], checking: boolean): void => {
     if (itemIds.length === 0) {
       return;

@@ -1,10 +1,12 @@
 use tauri::AppHandle;
 
 use crate::model::{
-    AppConfig, CheckResult, CommandOutput, ExecutionHistoryEntry, SoftwareItem, UpdateResult,
+    AppConfig, CheckResult, CommandOutput, ExecutionHistoryEntry, LatestResultState, SoftwareItem,
+    UpdateResult,
 };
 use crate::services::{
-    check_all_guard, check_service, config_store, history_events, history_store, shell_runner,
+    check_all_guard, check_service, config_store, history_events, history_store, result_store,
+    shell_runner,
 };
 
 fn default_timeout_seconds(config: &AppConfig) -> u64 {
@@ -33,6 +35,9 @@ fn check_item_impl(app: &AppHandle, item_id: &str) -> Result<CheckResult, String
     let item = find_item(&config, item_id).ok_or_else(|| format!("item not found: {item_id}"))?;
     let mut execute = |command: &str| shell_runner::run_shell_command(command, timeout_seconds);
     let result = check_service::check_single_item(item, &mut execute);
+    if let Err(error) = result_store::upsert_result(app, &result) {
+        eprintln!("failed to persist latest result: {error}");
+    }
     history_events::append_entry_safe(app, history_events::check_item_entry(&result));
     Ok(result)
 }
@@ -74,6 +79,9 @@ fn check_items_impl(
 
     let error_count = results.iter().filter(|item| item.error.is_some()).count();
     let update_count = results.iter().filter(|item| item.has_update).count();
+    if let Err(error) = result_store::upsert_results(app, &results) {
+        eprintln!("failed to persist latest results: {error}");
+    }
     history_events::append_entry_safe(
         app,
         history_events::check_all_entry(
@@ -130,6 +138,14 @@ fn check_auto_app_items_impl(app: &AppHandle) -> Result<Vec<CheckResult>, String
     )
 }
 
+fn check_everything_impl(app: &AppHandle) -> Result<Vec<CheckResult>, String> {
+    let mut results = Vec::new();
+    results.extend(check_all_impl(app)?);
+    results.extend(check_auto_cli_items_impl(app)?);
+    results.extend(check_auto_app_items_impl(app)?);
+    Ok(results)
+}
+
 fn run_item_update_impl(app: &AppHandle, item_id: &str) -> Result<UpdateResult, String> {
     let config = config_store::load_or_init_config(app)?;
     let timeout_seconds = default_timeout_seconds(&config);
@@ -175,6 +191,11 @@ pub fn load_config(app: AppHandle) -> Result<AppConfig, String> {
 #[tauri::command]
 pub fn save_config(app: AppHandle, config: AppConfig) -> Result<(), String> {
     config_store::save_config(&app, &config)
+}
+
+#[tauri::command]
+pub fn load_latest_results(app: AppHandle) -> Result<LatestResultState, String> {
+    result_store::load_state(&app)
 }
 
 #[tauri::command]
@@ -233,4 +254,28 @@ pub fn load_history(
 ) -> Result<Vec<ExecutionHistoryEntry>, String> {
     let requested = limit.unwrap_or(50).clamp(1, 200) as usize;
     history_store::load_entries(&app, requested)
+}
+
+pub fn check_manual_items_for_menu(app: &AppHandle) -> Result<Vec<CheckResult>, String> {
+    check_all_impl(app)
+}
+
+pub fn check_single_item_for_menu(app: &AppHandle, item_id: &str) -> Result<CheckResult, String> {
+    check_item_impl(app, item_id)
+}
+
+pub fn check_cli_items_for_menu(app: &AppHandle) -> Result<Vec<CheckResult>, String> {
+    check_auto_cli_items_impl(app)
+}
+
+pub fn check_app_items_for_menu(app: &AppHandle) -> Result<Vec<CheckResult>, String> {
+    check_auto_app_items_impl(app)
+}
+
+pub fn check_everything_for_menu(app: &AppHandle) -> Result<Vec<CheckResult>, String> {
+    check_everything_impl(app)
+}
+
+pub fn run_item_update_for_menu(app: &AppHandle, item_id: &str) -> Result<UpdateResult, String> {
+    run_item_update_impl(app, item_id)
 }
