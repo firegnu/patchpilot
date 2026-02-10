@@ -3,6 +3,7 @@ import type { CheckResult, ExecutionHistoryEntry, SoftwareItem } from '../types/
 interface MonitorPanelProps {
   title: string;
   batchLabel: string;
+  showUpdateButton?: boolean;
   items: SoftwareItem[];
   resultMap: Record<string, CheckResult>;
   checkingMap: Record<string, boolean>;
@@ -48,6 +49,7 @@ const resolveCheckAllState = (
 export default function MonitorPanel({
   title,
   batchLabel,
+  showUpdateButton = true,
   items,
   resultMap,
   checkingMap,
@@ -97,7 +99,7 @@ export default function MonitorPanel({
             <th>当前版本</th>
             <th>最新版本</th>
             <th>状态</th>
-            <th>操作</th>
+            <th>{showUpdateButton ? '操作' : '检查'}</th>
           </tr>
         </thead>
         <tbody>
@@ -125,15 +127,17 @@ export default function MonitorPanel({
                     >
                       检查
                     </button>
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      title={hasUpdate ? '检测到更新，执行更新命令' : '请先执行检查，确认有更新后再执行'}
-                      disabled={!item.enabled || updating || !hasUpdate}
-                      onClick={() => void onRunUpdate(item)}
-                    >
-                      {updating ? '执行中...' : '更新'}
-                    </button>
+                    {showUpdateButton && (
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        title={hasUpdate ? '检测到更新，执行更新命令' : '请先执行检查，确认有更新后再执行'}
+                        disabled={!item.enabled || updating || !hasUpdate}
+                        onClick={() => void onRunUpdate(item)}
+                      >
+                        {updating ? '执行中...' : '更新'}
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

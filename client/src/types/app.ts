@@ -1,4 +1,4 @@
-export type SoftwareKind = 'cli' | 'gui';
+export type SoftwareKind = 'cli' | 'gui' | 'app';
 export type ThemeMode = 'light' | 'dark' | 'system';
 
 export interface SoftwareItem {

@@ -46,6 +46,19 @@ const NEW_OMZ_LATEST_CMD: &str =
 const NEW_OMZ_UPDATE_CMD: &str =
     "if [ -x \"${ZSH:-$HOME/.oh-my-zsh}/tools/upgrade.sh\" ]; then \"${ZSH:-$HOME/.oh-my-zsh}/tools/upgrade.sh\" -v minimal; else echo 'oh-my-zsh not found'; exit 1; fi";
 const NEW_OMZ_DESC: &str = "Auto-check git HEAD; update manually via OMZ upgrade script";
+const NEW_VSCODE_CURRENT_CMD: &str = "if [ -d \"/Applications/Visual Studio Code.app\" ]; then defaults read \"/Applications/Visual Studio Code.app/Contents/Info.plist\" CFBundleShortVersionString 2>/dev/null || echo ''; else echo ''; fi";
+const NEW_VSCODE_LATEST_CMD: &str =
+    "HOMEBREW_NO_AUTO_UPDATE=1 brew info --cask visual-studio-code --json=v2 | sed -nE 's/.*\"version\":[[:space:]]*\"([^\"]+)\".*/\\1/p' | head -n 1";
+const NEW_VSCODE_UPDATE_CMD: &str =
+    "echo 'Visual Studio Code update is managed manually outside PatchPilot'";
+const NEW_ANTIGRAVITY_CURRENT_CMD: &str =
+    "if [ -d \"/Applications/Antigravity.app\" ]; then defaults read \"/Applications/Antigravity.app/Contents/Info.plist\" CFBundleShortVersionString 2>/dev/null || echo ''; else echo ''; fi";
+const NEW_ANTIGRAVITY_LATEST_CMD: &str =
+    "HOMEBREW_NO_AUTO_UPDATE=1 brew info --cask antigravity --json=v2 | sed -nE 's/.*\"version\":[[:space:]]*\"([^\"]+)\".*/\\1/p' | head -n 1 | cut -d, -f1";
+const NEW_ANTIGRAVITY_UPDATE_CMD: &str =
+    "echo 'Antigravity update is managed manually outside PatchPilot'";
+const NEW_GUI_DESC: &str =
+    "Auto-check app version via local Info.plist and Homebrew cask metadata";
 const NEW_BREW_DESC: &str = "Check and update Homebrew packages";
 const OLD_DEFAULT_CHECK_INTERVAL_MINUTES: u64 = 360;
 const NEW_DEFAULT_CHECK_INTERVAL_MINUTES: u64 = 480;
@@ -200,6 +213,36 @@ fn append_default_items_if_missing(config: &mut AppConfig) -> bool {
             update_check_command: None,
             update_check_regex: None,
             update_command: NEW_OMZ_UPDATE_CMD.to_string(),
+        });
+        changed = true;
+    }
+    if !config.items.iter().any(|item| item.id == "visual-studio-code") {
+        config.items.push(SoftwareItem {
+            id: "visual-studio-code".to_string(),
+            name: "Visual Studio Code".to_string(),
+            kind: "gui".to_string(),
+            enabled: true,
+            description: NEW_GUI_DESC.to_string(),
+            current_version_command: Some(NEW_VSCODE_CURRENT_CMD.to_string()),
+            latest_version_command: Some(NEW_VSCODE_LATEST_CMD.to_string()),
+            update_check_command: None,
+            update_check_regex: None,
+            update_command: NEW_VSCODE_UPDATE_CMD.to_string(),
+        });
+        changed = true;
+    }
+    if !config.items.iter().any(|item| item.id == "antigravity") {
+        config.items.push(SoftwareItem {
+            id: "antigravity".to_string(),
+            name: "Antigravity".to_string(),
+            kind: "gui".to_string(),
+            enabled: true,
+            description: NEW_GUI_DESC.to_string(),
+            current_version_command: Some(NEW_ANTIGRAVITY_CURRENT_CMD.to_string()),
+            latest_version_command: Some(NEW_ANTIGRAVITY_LATEST_CMD.to_string()),
+            update_check_command: None,
+            update_check_regex: None,
+            update_command: NEW_ANTIGRAVITY_UPDATE_CMD.to_string(),
         });
         changed = true;
     }

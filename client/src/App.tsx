@@ -1,43 +1,58 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import ConfigEditor from './components/ConfigEditor';
-import HistoryPanel from './components/HistoryPanel';
 import MonitorPanel from './components/MonitorPanel';
 import SharedCommandsPanel from './components/SharedCommandsPanel';
-import { checkAll, checkAutoItems, checkItem, loadConfig, loadHistory, runAdHocCommand, runItemUpdate, saveConfig } from './lib/ipc';
-import { normalizeConfig, validateConfig } from './lib/config';
+import {
+  checkAll,
+  checkAutoAppItems,
+  checkAutoCliItems,
+  checkItem,
+  loadConfig,
+  loadHistory,
+  runAdHocCommand,
+  runItemUpdate,
+  saveConfig,
+} from './lib/ipc';
+import { normalizeConfig } from './lib/config';
 import { applyThemeMode } from './lib/theme';
 import type { AppConfig, CheckResult, ExecutionHistoryEntry, SoftwareItem, ThemeMode } from './types/app';
-const HISTORY_PAGE_SIZE = 20;
-const HISTORY_MAX_LIMIT = 200;
 const formatError = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 const themeModeLabel = (mode: ThemeMode): string => ({ system: '跟随系统', light: '浅色', dark: '深色' })[mode];
 const isManualItem = (item: SoftwareItem): boolean => item.id === 'brew' || item.id === 'bun';
 export default function App() {
   const [config, setConfig] = useState<AppConfig | null>(null);
-  const [editorText, setEditorText] = useState('');
   const [message, setMessage] = useState('正在加载配置...');
   const [resultMap, setResultMap] = useState<Record<string, CheckResult>>({});
   const [checkingMap, setCheckingMap] = useState<Record<string, boolean>>({});
   const [autoCheckingMap, setAutoCheckingMap] = useState<Record<string, boolean>>({});
   const [updatingMap, setUpdatingMap] = useState<Record<string, boolean>>({});
   const [historyEntries, setHistoryEntries] = useState<ExecutionHistoryEntry[]>([]);
-  const [historyLimit, setHistoryLimit] = useState(HISTORY_PAGE_SIZE);
   const [checkAllRunning, setCheckAllRunning] = useState(false);
-  const [autoCheckRunning, setAutoCheckRunning] = useState(false);
+  const [autoCliCheckRunning, setAutoCliCheckRunning] = useState(false);
+  const [autoAppCheckRunning, setAutoAppCheckRunning] = useState(false);
   const checkAllRunningRef = useRef(false);
-  const autoCheckRunningRef = useRef(false);
+  const autoCheckCycleRunningRef = useRef(false);
+  const autoCliCheckRunningRef = useRef(false);
+  const autoAppCheckRunningRef = useRef(false);
   const enabledItems = useMemo(() => config?.items.filter((item) => item.enabled) ?? [], [config]);
   const manualItems = useMemo(() => enabledItems.filter((item) => isManualItem(item)), [enabledItems]);
-  const autoItems = useMemo(() => enabledItems.filter((item) => !isManualItem(item)), [enabledItems]);
+  const autoCliItems = useMemo(
+    () => enabledItems.filter((item) => !isManualItem(item) && item.kind === 'cli'),
+    [enabledItems]
+  );
+  const autoAppItems = useMemo(
+    () => enabledItems.filter((item) => !isManualItem(item) && (item.kind === 'gui' || item.kind === 'app')),
+    [enabledItems]
+  );
   const mergedCheckingMap = useMemo(
     () => ({ ...checkingMap, ...autoCheckingMap }),
     [checkingMap, autoCheckingMap]
   );
   const latestCheckAllEntry = useMemo(() => historyEntries.find((entry) => entry.action === 'check-all' || entry.action === 'check-all-skip') ?? null, [historyEntries]);
-  const latestAutoCheckEntry = useMemo(() => historyEntries.find((entry) => entry.action === 'auto-check' || entry.action === 'auto-check-skip') ?? null, [historyEntries]);
-  const refreshHistory = async (limit = historyLimit): Promise<void> => {
+  const latestAutoCliCheckEntry = useMemo(() => historyEntries.find((entry) => entry.action === 'auto-check-cli' || entry.action === 'auto-check-cli-skip') ?? null, [historyEntries]);
+  const latestAutoAppCheckEntry = useMemo(() => historyEntries.find((entry) => entry.action === 'auto-check-app' || entry.action === 'auto-check-app-skip') ?? null, [historyEntries]);
+  const refreshHistory = async (): Promise<void> => {
     try {
-      const entries = await loadHistory(limit);
+      const entries = await loadHistory(50);
       setHistoryEntries(entries);
     } catch (error) {
       console.error('加载历史失败', error);
@@ -46,8 +61,7 @@ export default function App() {
   const reloadConfig = async (): Promise<void> => {
     const nextConfig = normalizeConfig((await loadConfig()) as Partial<AppConfig>);
     setConfig(nextConfig);
-    setEditorText(JSON.stringify(nextConfig, null, 2));
-    await refreshHistory(historyLimit);
+    await refreshHistory();
     setMessage('配置已加载。');
   };
   useEffect(() => {
@@ -56,10 +70,22 @@ export default function App() {
   useEffect(() => (config ? applyThemeMode(config.theme_mode) : undefined), [config?.theme_mode]);
   useEffect(() => {
     if (!config) return;
-    void handleAutoCheck();
-    const timer = setInterval(() => void handleAutoCheck(), Math.max(config.check_interval_minutes, 1) * 60 * 1000);
+    void handleAutoCheckCycle();
+    const timer = setInterval(() => void handleAutoCheckCycle(), Math.max(config.check_interval_minutes, 1) * 60 * 1000);
     return () => clearInterval(timer);
   }, [config]);
+  const setAutoItemsChecking = (itemIds: string[], checking: boolean): void => {
+    if (itemIds.length === 0) {
+      return;
+    }
+    setAutoCheckingMap((prev) => {
+      const next = { ...prev };
+      itemIds.forEach((id) => {
+        next[id] = checking;
+      });
+      return next;
+    });
+  };
   const handleCheckItem = async (itemId: string): Promise<void> => {
     setCheckingMap((prev) => ({ ...prev, [itemId]: true }));
     try {
@@ -97,48 +123,68 @@ export default function App() {
       setCheckAllRunning(false);
     }
   };
-  const handleAutoCheck = async (): Promise<void> => {
-    if (!config || autoCheckRunningRef.current) {
+  const handleAutoCliCheck = async (): Promise<void> => {
+    if (!config || autoCliCheckRunningRef.current) {
       return;
     }
-    const autoItemIds = config.items
-      .filter((item) => item.enabled && !isManualItem(item))
-      .map((item) => item.id);
-    autoCheckRunningRef.current = true;
-    setAutoCheckRunning(true);
-    if (autoItemIds.length > 0) {
-      setAutoCheckingMap((prev) => {
-        const next = { ...prev };
-        autoItemIds.forEach((id) => {
-          next[id] = true;
-        });
-        return next;
-      });
-    }
+    const itemIds = autoCliItems.map((item) => item.id);
+    autoCliCheckRunningRef.current = true;
+    setAutoCliCheckRunning(true);
+    setAutoItemsChecking(itemIds, true);
     try {
-      const results = await checkAutoItems();
+      const results = await checkAutoCliItems();
       if (results.length > 0) {
         const nextMap = results.reduce<Record<string, CheckResult>>((acc, item) => {
           acc[item.item_id] = item;
           return acc;
         }, {});
         setResultMap((prev) => ({ ...prev, ...nextMap }));
-        await refreshHistory();
       }
+      await refreshHistory();
     } catch (error) {
-      console.error('自动检查失败', error);
+      console.error('CLI 自动检查失败', error);
     } finally {
-      if (autoItemIds.length > 0) {
-        setAutoCheckingMap((prev) => {
-          const next = { ...prev };
-          autoItemIds.forEach((id) => {
-            next[id] = false;
-          });
-          return next;
-        });
+      setAutoItemsChecking(itemIds, false);
+      autoCliCheckRunningRef.current = false;
+      setAutoCliCheckRunning(false);
+    }
+  };
+  const handleAutoAppCheck = async (): Promise<void> => {
+    if (!config || autoAppCheckRunningRef.current) {
+      return;
+    }
+    const itemIds = autoAppItems.map((item) => item.id);
+    autoAppCheckRunningRef.current = true;
+    setAutoAppCheckRunning(true);
+    setAutoItemsChecking(itemIds, true);
+    try {
+      const results = await checkAutoAppItems();
+      if (results.length > 0) {
+        const nextMap = results.reduce<Record<string, CheckResult>>((acc, item) => {
+          acc[item.item_id] = item;
+          return acc;
+        }, {});
+        setResultMap((prev) => ({ ...prev, ...nextMap }));
       }
-      autoCheckRunningRef.current = false;
-      setAutoCheckRunning(false);
+      await refreshHistory();
+    } catch (error) {
+      console.error('App 自动检查失败', error);
+    } finally {
+      setAutoItemsChecking(itemIds, false);
+      autoAppCheckRunningRef.current = false;
+      setAutoAppCheckRunning(false);
+    }
+  };
+  const handleAutoCheckCycle = async (): Promise<void> => {
+    if (!config || autoCheckCycleRunningRef.current) {
+      return;
+    }
+    autoCheckCycleRunningRef.current = true;
+    try {
+      await handleAutoCliCheck();
+      await handleAutoAppCheck();
+    } finally {
+      autoCheckCycleRunningRef.current = false;
     }
   };
   const handleRunUpdate = async (item: SoftwareItem): Promise<void> => {
@@ -165,43 +211,17 @@ export default function App() {
       setMessage(`共享命令执行失败：${formatError(error)}`);
     }
   };
-  const handleLoadMoreHistory = async (): Promise<void> => {
-    const nextLimit = Math.min(historyLimit + HISTORY_PAGE_SIZE, HISTORY_MAX_LIMIT);
-    if (nextLimit <= historyLimit) {
-      setMessage('历史记录已达到展示上限（200 条）。');
-      return;
-    }
-    setHistoryLimit(nextLimit);
-    await refreshHistory(nextLimit);
-  };
   const handleChangeThemeMode = async (mode: ThemeMode): Promise<void> => {
     if (!config || config.theme_mode === mode) {
       return;
     }
     const nextConfig = { ...config, theme_mode: mode };
     setConfig(nextConfig);
-    setEditorText(JSON.stringify(nextConfig, null, 2));
     try {
       await saveConfig(nextConfig);
       setMessage(`主题已切换为：${themeModeLabel(mode)}。`);
     } catch (error) {
       setMessage(`主题保存失败：${formatError(error)}`);
-    }
-  };
-  const handleSaveConfig = async (): Promise<void> => {
-    try {
-      const parsed = JSON.parse(editorText) as Partial<AppConfig>;
-      const normalized = normalizeConfig(parsed);
-      const error = validateConfig(normalized);
-      if (error) {
-        setMessage(`配置校验失败：${error}`);
-        return;
-      }
-      await saveConfig(normalized);
-      setConfig(normalized);
-      setMessage('配置已保存。');
-    } catch (error) {
-      setMessage(`保存失败：${formatError(error)}`);
     }
   };
   return (
@@ -225,20 +245,32 @@ export default function App() {
         onRunUpdate={handleRunUpdate}
       />
       <MonitorPanel
-        title="CLI 与 App（自动区）"
-        batchLabel="立即检查自动区"
-        items={autoItems}
+        title="CLI 工具（自动检查 + 手动更新）"
+        batchLabel="立即检查 CLI 工具"
+        items={autoCliItems}
         resultMap={resultMap}
         checkingMap={mergedCheckingMap}
         updatingMap={updatingMap}
-        checkAllRunning={autoCheckRunning}
-        latestCheckAllEntry={latestAutoCheckEntry}
+        checkAllRunning={autoCliCheckRunning}
+        latestCheckAllEntry={latestAutoCliCheckEntry}
         onCheckItem={handleCheckItem}
-        onCheckAll={handleAutoCheck}
+        onCheckAll={handleAutoCliCheck}
         onRunUpdate={handleRunUpdate}
       />
-      <ConfigEditor value={editorText} onChange={setEditorText} onSave={handleSaveConfig} onReload={reloadConfig} />
-      <HistoryPanel entries={historyEntries} canLoadMore={historyEntries.length >= historyLimit && historyLimit < HISTORY_MAX_LIMIT} onLoadMore={handleLoadMoreHistory} onReload={refreshHistory} />
+      <MonitorPanel
+        title="App（自动检查）"
+        batchLabel="立即检查 App"
+        showUpdateButton={false}
+        items={autoAppItems}
+        resultMap={resultMap}
+        checkingMap={mergedCheckingMap}
+        updatingMap={updatingMap}
+        checkAllRunning={autoAppCheckRunning}
+        latestCheckAllEntry={latestAutoAppCheckEntry}
+        onCheckItem={handleCheckItem}
+        onCheckAll={handleAutoAppCheck}
+        onRunUpdate={handleRunUpdate}
+      />
     </main>
   );
 }

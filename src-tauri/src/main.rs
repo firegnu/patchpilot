@@ -60,6 +60,8 @@ fn main() {
             commands::check_item,
             commands::check_all,
             commands::check_auto_items,
+            commands::check_auto_cli_items,
+            commands::check_auto_app_items,
             commands::run_item_update,
             commands::run_ad_hoc_command,
             commands::load_history

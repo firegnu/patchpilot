@@ -78,6 +78,30 @@
       "update_check_command": null,
       "update_check_regex": null,
       "update_command": "if [ -x \"${ZSH:-$HOME/.oh-my-zsh}/tools/upgrade.sh\" ]; then \"${ZSH:-$HOME/.oh-my-zsh}/tools/upgrade.sh\" -v minimal; else echo 'oh-my-zsh not found'; exit 1; fi"
+    },
+    {
+      "id": "visual-studio-code",
+      "name": "Visual Studio Code",
+      "kind": "gui",
+      "enabled": true,
+      "description": "Auto-check app version via local Info.plist and Homebrew cask metadata",
+      "current_version_command": "if [ -d \"/Applications/Visual Studio Code.app\" ]; then defaults read \"/Applications/Visual Studio Code.app/Contents/Info.plist\" CFBundleShortVersionString 2>/dev/null || echo ''; else echo ''; fi",
+      "latest_version_command": "HOMEBREW_NO_AUTO_UPDATE=1 brew info --cask visual-studio-code --json=v2 | sed -nE 's/.*\"version\":[[:space:]]*\"([^\"]+)\".*/\\1/p' | head -n 1",
+      "update_check_command": null,
+      "update_check_regex": null,
+      "update_command": "echo 'Visual Studio Code update is managed manually outside PatchPilot'"
+    },
+    {
+      "id": "antigravity",
+      "name": "Antigravity",
+      "kind": "gui",
+      "enabled": true,
+      "description": "Auto-check app version via local Info.plist and Homebrew cask metadata",
+      "current_version_command": "if [ -d \"/Applications/Antigravity.app\" ]; then defaults read \"/Applications/Antigravity.app/Contents/Info.plist\" CFBundleShortVersionString 2>/dev/null || echo ''; else echo ''; fi",
+      "latest_version_command": "HOMEBREW_NO_AUTO_UPDATE=1 brew info --cask antigravity --json=v2 | sed -nE 's/.*\"version\":[[:space:]]*\"([^\"]+)\".*/\\1/p' | head -n 1 | cut -d, -f1",
+      "update_check_command": null,
+      "update_check_regex": null,
+      "update_command": "echo 'Antigravity update is managed manually outside PatchPilot'"
     }
   ]
 }

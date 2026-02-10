@@ -19,6 +19,14 @@ fn is_manual_item(item: &SoftwareItem) -> bool {
     matches!(item.id.as_str(), "brew" | "bun")
 }
 
+fn is_auto_cli_item(item: &SoftwareItem) -> bool {
+    item.enabled && !is_manual_item(item) && item.kind == "cli"
+}
+
+fn is_auto_app_item(item: &SoftwareItem) -> bool {
+    item.enabled && !is_manual_item(item) && (item.kind == "gui" || item.kind == "app")
+}
+
 fn check_item_impl(app: &AppHandle, item_id: &str) -> Result<CheckResult, String> {
     let config = config_store::load_or_init_config(app)?;
     let timeout_seconds = default_timeout_seconds(&config);
@@ -102,6 +110,26 @@ fn check_auto_items_impl(app: &AppHandle) -> Result<Vec<CheckResult>, String> {
     )
 }
 
+fn check_auto_cli_items_impl(app: &AppHandle) -> Result<Vec<CheckResult>, String> {
+    check_items_impl(
+        app,
+        "auto-check-cli",
+        "auto-check-cli-skip",
+        "已跳过：上一轮 CLI 自动检查仍在运行",
+        is_auto_cli_item,
+    )
+}
+
+fn check_auto_app_items_impl(app: &AppHandle) -> Result<Vec<CheckResult>, String> {
+    check_items_impl(
+        app,
+        "auto-check-app",
+        "auto-check-app-skip",
+        "已跳过：上一轮 App 自动检查仍在运行",
+        is_auto_app_item,
+    )
+}
+
 fn run_item_update_impl(app: &AppHandle, item_id: &str) -> Result<UpdateResult, String> {
     let config = config_store::load_or_init_config(app)?;
     let timeout_seconds = default_timeout_seconds(&config);
@@ -168,6 +196,20 @@ pub async fn check_auto_items(app: AppHandle) -> Result<Vec<CheckResult>, String
     tauri::async_runtime::spawn_blocking(move || check_auto_items_impl(&app))
         .await
         .map_err(|error| format!("check_auto_items task failed: {error}"))?
+}
+
+#[tauri::command]
+pub async fn check_auto_cli_items(app: AppHandle) -> Result<Vec<CheckResult>, String> {
+    tauri::async_runtime::spawn_blocking(move || check_auto_cli_items_impl(&app))
+        .await
+        .map_err(|error| format!("check_auto_cli_items task failed: {error}"))?
+}
+
+#[tauri::command]
+pub async fn check_auto_app_items(app: AppHandle) -> Result<Vec<CheckResult>, String> {
+    tauri::async_runtime::spawn_blocking(move || check_auto_app_items_impl(&app))
+        .await
+        .map_err(|error| format!("check_auto_app_items task failed: {error}"))?
 }
 
 #[tauri::command]

@@ -18,6 +18,8 @@ export const checkItem = async (itemId: string): Promise<CheckResult> =>
 
 export const checkAll = async (): Promise<CheckResult[]> => invoke('check_all');
 export const checkAutoItems = async (): Promise<CheckResult[]> => invoke('check_auto_items');
+export const checkAutoCliItems = async (): Promise<CheckResult[]> => invoke('check_auto_cli_items');
+export const checkAutoAppItems = async (): Promise<CheckResult[]> => invoke('check_auto_app_items');
 
 export const runItemUpdate = async (itemId: string): Promise<UpdateResult> =>
   invoke('run_item_update', { itemId });
