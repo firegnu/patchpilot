@@ -13,6 +13,30 @@
   --btn-primary-bg: #1f5fff;
   --btn-primary-text: #ffffff;
   --editor-border: #d4e0f0;
+  --state-latest-fg: #1f6b3b;
+  --state-latest-bg: #eaf8ef;
+  --state-latest-border: #9fd6b1;
+  --state-latest-row: #f4fcf7;
+  --state-outdated-fg: #8a5200;
+  --state-outdated-bg: #fff4df;
+  --state-outdated-border: #efcf8b;
+  --state-outdated-row: #fff9eb;
+  --state-checking-fg: #0f5a8a;
+  --state-checking-bg: #eaf7ff;
+  --state-checking-border: #9ad2f2;
+  --state-checking-row: #f2f9ff;
+  --state-error-fg: #8c2f28;
+  --state-error-bg: #fff0ee;
+  --state-error-border: #efb3ae;
+  --state-error-row: #fff6f5;
+  --state-unknown-fg: #475d78;
+  --state-unknown-bg: #eef3f8;
+  --state-unknown-border: #c8d6e6;
+  --state-unknown-row: #f6f9fc;
+  --state-disabled-fg: #5d6f84;
+  --state-disabled-bg: #edf1f6;
+  --state-disabled-border: #cad5e2;
+  --state-disabled-row: #f8fafd;
 }
 
 :root[data-theme="dark"] {
@@ -29,6 +53,30 @@
   --btn-primary-bg: #5a84ff;
   --btn-primary-text: #f8faff;
   --editor-border: #384052;
+  --state-latest-fg: #9fdbb7;
+  --state-latest-bg: #1c2d25;
+  --state-latest-border: #2f5a45;
+  --state-latest-row: #19271f;
+  --state-outdated-fg: #f2d083;
+  --state-outdated-bg: #2e281a;
+  --state-outdated-border: #6d5a30;
+  --state-outdated-row: #272113;
+  --state-checking-fg: #9dc2ff;
+  --state-checking-bg: #1e2b3f;
+  --state-checking-border: #37527f;
+  --state-checking-row: #1a2434;
+  --state-error-fg: #ffb4ad;
+  --state-error-bg: #32201f;
+  --state-error-border: #744038;
+  --state-error-row: #2b1d1d;
+  --state-unknown-fg: #b5becd;
+  --state-unknown-bg: #212936;
+  --state-unknown-border: #38465c;
+  --state-unknown-row: #1d2430;
+  --state-disabled-fg: #a1abbb;
+  --state-disabled-bg: #202632;
+  --state-disabled-border: #364154;
+  --state-disabled-row: #1c222d;
 }
 
 .status-badge {

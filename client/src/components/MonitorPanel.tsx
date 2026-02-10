@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import type { CheckResult, ExecutionHistoryEntry, SoftwareItem } from '../types/app';
 
 interface MonitorPanelProps {
@@ -16,6 +17,7 @@ interface MonitorPanelProps {
 }
 
 type CheckAllState = 'running' | 'success' | 'failed' | 'skipped' | 'idle';
+type ItemState = 'outdated' | 'latest' | 'checking' | 'error' | 'unknown' | 'disabled';
 
 const statusText = (item: SoftwareItem, result?: CheckResult): string => {
   if (!item.enabled) {
@@ -28,6 +30,50 @@ const statusText = (item: SoftwareItem, result?: CheckResult): string => {
     return `错误：${result.error}`;
   }
   return result.has_update ? '有可用更新' : '已是最新';
+};
+
+const resolveItemState = (
+  item: SoftwareItem,
+  result: CheckResult | undefined,
+  checking: boolean
+): ItemState => {
+  if (!item.enabled) {
+    return 'disabled';
+  }
+  if (checking) {
+    return 'checking';
+  }
+  if (!result) {
+    return 'unknown';
+  }
+  if (result.error) {
+    return 'error';
+  }
+  return result.has_update ? 'outdated' : 'latest';
+};
+
+const statePriority = (state: ItemState): number => {
+  const priority: Record<ItemState, number> = {
+    outdated: 0,
+    error: 1,
+    checking: 2,
+    unknown: 3,
+    latest: 4,
+    disabled: 5,
+  };
+  return priority[state];
+};
+
+const stateBadgeText = (state: ItemState): string => {
+  const map: Record<ItemState, string> = {
+    outdated: '↑ 有可用更新',
+    latest: '✓ 已是最新',
+    checking: '… 检查中',
+    error: '! 检查失败',
+    unknown: '- 未检查',
+    disabled: '× 已禁用',
+  };
+  return map[state];
 };
 
 const resolveCheckAllState = (
@@ -73,12 +119,43 @@ export default function MonitorPanel({
     : latestCheckAllEntry
       ? `最近一次${batchLabel}：${new Date(latestCheckAllEntry.recorded_at).toLocaleString('zh-CN')} | ${latestCheckAllEntry.summary}`
       : `${batchLabel}尚未执行。`;
+  const rows = useMemo(() => {
+    return items
+      .map((item) => {
+        const result = resultMap[item.id];
+        const checking = Boolean(checkingMap[item.id]);
+        const updating = Boolean(updatingMap[item.id]);
+        const state = resolveItemState(item, result, checking);
+        return {
+          item,
+          result,
+          checking,
+          updating,
+          hasUpdate: Boolean(result?.has_update && !result?.error),
+          state,
+          statusLabel: checking ? '检查中...' : statusText(item, result),
+        };
+      })
+      .sort((a, b) => {
+        const priorityDelta = statePriority(a.state) - statePriority(b.state);
+        if (priorityDelta !== 0) {
+          return priorityDelta;
+        }
+        return a.item.name.localeCompare(b.item.name, 'zh-CN');
+      });
+  }, [items, resultMap, checkingMap, updatingMap]);
+  const outdatedCount = rows.filter((row) => row.state === 'outdated').length;
+  const latestCount = rows.filter((row) => row.state === 'latest').length;
+  const errorCount = rows.filter((row) => row.state === 'error').length;
 
   return (
     <section className="panel">
       <div className="panel-header">
         <h2>{title}</h2>
         <div className="inline-actions">
+          <span className="panel-stats">
+            可更新 {outdatedCount} | 最新 {latestCount} | 错误 {errorCount}
+          </span>
           <span className={`status-badge status-${checkAllState}`}>{badgeText}</span>
           <button
             type="button"
@@ -103,20 +180,27 @@ export default function MonitorPanel({
           </tr>
         </thead>
         <tbody>
-          {items.map((item) => {
-            const result = resultMap[item.id];
-            const checking = Boolean(checkingMap[item.id]);
-            const updating = Boolean(updatingMap[item.id]);
-            const hasUpdate = result?.has_update && !result?.error;
+          {rows.map((row) => {
+            const { item, result, checking, updating, hasUpdate, state, statusLabel } = row;
             return (
-              <tr key={item.id}>
+              <tr key={item.id} className={`item-row item-row-${state}`}>
                 <td>
                   <div>{item.name}</div>
                   <small>{item.description}</small>
                 </td>
                 <td>{result?.current_version ?? '-'}</td>
                 <td>{result?.latest_version ?? '-'}</td>
-                <td>{checking ? '检查中...' : statusText(item, result)}</td>
+                <td>
+                  <div className="item-status-cell">
+                    <span className={`item-status-badge item-status-${state}`}>
+                      {stateBadgeText(state)}
+                    </span>
+                    {state === 'error' && result?.error && (
+                      <small className="status-detail">{result.error}</small>
+                    )}
+                    {state !== 'error' && <small className="status-detail">{statusLabel}</small>}
+                  </div>
+                </td>
                 <td>
                   <div className="inline-actions">
                     <button
@@ -135,7 +219,7 @@ export default function MonitorPanel({
                         disabled={!item.enabled || updating || !hasUpdate}
                         onClick={() => void onRunUpdate(item)}
                       >
-                        {updating ? '执行中...' : '更新'}
+                        {updating ? '执行中...' : '立即更新'}
                       </button>
                     )}
                   </div>

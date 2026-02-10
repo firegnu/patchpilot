@@ -57,6 +57,12 @@ header p {
   flex-wrap: wrap;
 }
 
+.panel-stats {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .btn {
   border: 1px solid var(--btn-border);
   background: var(--btn-bg);
@@ -99,6 +105,96 @@ td {
   border-bottom: 1px solid var(--border-table);
   padding: 10px 8px;
   vertical-align: top;
+}
+
+.item-row td {
+  transition: background-color 120ms ease;
+}
+
+.item-row-outdated td {
+  background: var(--state-outdated-row);
+}
+
+.item-row-latest td {
+  background: var(--state-latest-row);
+}
+
+.item-row-checking td {
+  background: var(--state-checking-row);
+}
+
+.item-row-error td {
+  background: var(--state-error-row);
+}
+
+.item-row-unknown td {
+  background: var(--state-unknown-row);
+}
+
+.item-row-disabled td {
+  background: var(--state-disabled-row);
+}
+
+.item-status-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.item-status-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 3px 9px;
+  border: 1px solid;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.status-detail {
+  margin: 0;
+  color: var(--text-secondary);
+  max-width: 420px;
+  word-break: break-word;
+}
+
+.item-status-outdated {
+  color: var(--state-outdated-fg);
+  background: var(--state-outdated-bg);
+  border-color: var(--state-outdated-border);
+}
+
+.item-status-latest {
+  color: var(--state-latest-fg);
+  background: var(--state-latest-bg);
+  border-color: var(--state-latest-border);
+}
+
+.item-status-checking {
+  color: var(--state-checking-fg);
+  background: var(--state-checking-bg);
+  border-color: var(--state-checking-border);
+}
+
+.item-status-error {
+  color: var(--state-error-fg);
+  background: var(--state-error-bg);
+  border-color: var(--state-error-border);
+}
+
+.item-status-unknown,
+.item-status-disabled {
+  color: var(--state-unknown-fg);
+  background: var(--state-unknown-bg);
+  border-color: var(--state-unknown-border);
+}
+
+.item-status-disabled {
+  color: var(--state-disabled-fg);
+  background: var(--state-disabled-bg);
+  border-color: var(--state-disabled-border);
 }
 
 small {
