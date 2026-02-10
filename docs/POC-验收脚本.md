@@ -10,15 +10,15 @@
 
 ## 2. 前置准备
 
-1. 使用样例配置：`/Users/firegnu/Developer/personal_projs/PatchPilot/docs/poc-software-items.sample.json`
+1. 使用样例配置：`docs/poc-software-items.sample.json`
 2. 安装依赖：
 ```bash
-cd /Users/firegnu/Developer/personal_projs/PatchPilot/client
+cd client
 npm install
 ```
 3. 启动开发：
 ```bash
-cd /Users/firegnu/Developer/personal_projs/PatchPilot/src-tauri
+cd src-tauri
 cargo tauri dev
 ```
 
@@ -54,12 +54,12 @@ cargo tauri dev
 
 1. 前端构建：
 ```bash
-cd /Users/firegnu/Developer/personal_projs/PatchPilot/client
+cd client
 npm run build
 ```
 2. 后端检查：
 ```bash
-cd /Users/firegnu/Developer/personal_projs/PatchPilot/src-tauri
+cd src-tauri
 cargo check
 ```
 
@@ -76,4 +76,4 @@ cargo check
 - 备注与遗留问题：
 
 最近一次自动化执行记录见：
-- `/Users/firegnu/Developer/personal_projs/PatchPilot/docs/POC-验收记录.md`
+- `docs/POC-验收记录.md`

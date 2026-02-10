@@ -163,14 +163,14 @@ PatchPilot/
 ### 安装依赖
 
 ```bash
-cd /Users/firegnu/Developer/personal_projs/PatchPilot/client
+cd client
 npm install
 ```
 
 ### 启动开发模式
 
 ```bash
-cd /Users/firegnu/Developer/personal_projs/PatchPilot/src-tauri
+cd src-tauri
 cargo tauri dev
 ```
 
@@ -181,7 +181,7 @@ cargo tauri dev
 ## 构建
 
 ```bash
-cd /Users/firegnu/Developer/personal_projs/PatchPilot/src-tauri
+cd src-tauri
 cargo tauri build
 ```
 

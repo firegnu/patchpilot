@@ -4,7 +4,7 @@
 
 - 执行时间：2026-02-10 11:05:41 CST
 - 执行范围：自动化检查 + 文档化手动验收待办
-- 关联脚本：`/Users/firegnu/Developer/personal_projs/PatchPilot/docs/POC-验收脚本.md`
+- 关联脚本：`docs/POC-验收脚本.md`
 
 ## 自动化检查结果
 

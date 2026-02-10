@@ -95,8 +95,8 @@
 3. history 读取失败时不影响主流程。
 
 ### 构建场景
-1. 前端构建：`/Users/firegnu/Developer/personal_projs/PatchPilot/client` 下 `npm run build` 通过。
-2. 后端检查：`/Users/firegnu/Developer/personal_projs/PatchPilot/src-tauri` 下 `cargo check` 通过。
+1. 前端构建：`client` 下 `npm run build` 通过。
+2. 后端检查：`src-tauri` 下 `cargo check` 通过。
 
 ## 8. 风险与应对
 
