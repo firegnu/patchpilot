@@ -10,11 +10,18 @@ const OLD_BREW_CHECK_CMD: &str = "brew outdated --quiet brew";
 const OLD_BREW_UPDATE_CMD: &str = "brew update && brew upgrade brew";
 const OLD_BUN_CHECK_CMD: &str = "brew outdated --quiet bun";
 const OLD_BUN_UPDATE_CMD: &str = "brew upgrade bun";
+const OLD_BUN_CURRENT_CMD: &str = "bun --version";
 const OLD_CLAUDE_CHECK_CMD: &str = "npm outdated -g @anthropic-ai/claude-code --parseable";
 const OLD_CLAUDE_UPDATE_CMD: &str = "npm install -g @anthropic-ai/claude-code@latest";
 const OLD_CLAUDE_DESC: &str = "Example: update npm-managed claude-code";
+const NEW_BREW_CURRENT_CMD: &str = "brew --version | head -n 1 | awk '{print $2}'";
+const NEW_BREW_LATEST_CMD: &str = "brew --version | head -n 1 | awk '{print $2}'";
 const NEW_BREW_CHECK_CMD: &str = "brew outdated --quiet";
 const NEW_BREW_UPDATE_CMD: &str = "brew update && brew upgrade";
+const NEW_BUN_CURRENT_CMD: &str =
+    "if command -v bun >/dev/null 2>&1; then bun --version; else echo ''; fi";
+const NEW_BUN_LATEST_CMD: &str =
+    "if brew info bun --json=v2 >/dev/null 2>&1; then brew info bun --json=v2 | sed -nE 's/.*\"stable\":[[:space:]]*\"([^\"]+)\".*/\\1/p' | head -n 1; elif command -v bun >/dev/null 2>&1; then bun --version; else echo ''; fi";
 const NEW_BUN_CHECK_CMD: &str =
     "if brew list bun >/dev/null 2>&1; then brew outdated --quiet bun; else echo ''; fi";
 const NEW_BUN_UPDATE_CMD: &str =
@@ -103,6 +110,19 @@ fn patch_legacy_item_commands(item: &mut SoftwareItem) -> bool {
     let mut changed = false;
 
     if item.id == "brew" {
+        if item.current_version_command.is_none() {
+            item.current_version_command = Some(NEW_BREW_CURRENT_CMD.to_string());
+            changed = true;
+        }
+        if item
+            .latest_version_command
+            .as_deref()
+            .map(|value| value.trim().is_empty())
+            .unwrap_or(true)
+        {
+            item.latest_version_command = Some(NEW_BREW_LATEST_CMD.to_string());
+            changed = true;
+        }
         if item.update_check_command.as_deref() == Some(OLD_BREW_CHECK_CMD) {
             item.update_check_command = Some(NEW_BREW_CHECK_CMD.to_string());
             changed = true;
@@ -118,6 +138,21 @@ fn patch_legacy_item_commands(item: &mut SoftwareItem) -> bool {
     }
 
     if item.id == "bun" {
+        if item.current_version_command.as_deref() == Some(OLD_BUN_CURRENT_CMD)
+            || item.current_version_command.is_none()
+        {
+            item.current_version_command = Some(NEW_BUN_CURRENT_CMD.to_string());
+            changed = true;
+        }
+        if item
+            .latest_version_command
+            .as_deref()
+            .map(|value| value.trim().is_empty())
+            .unwrap_or(true)
+        {
+            item.latest_version_command = Some(NEW_BUN_LATEST_CMD.to_string());
+            changed = true;
+        }
         if item.update_check_command.as_deref() == Some(OLD_BUN_CHECK_CMD) {
             item.update_check_command = Some(NEW_BUN_CHECK_CMD.to_string());
             changed = true;

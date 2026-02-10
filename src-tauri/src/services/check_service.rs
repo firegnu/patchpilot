@@ -19,6 +19,15 @@ fn command_error_text(stderr: &str, stdout: &str) -> String {
 
 type CommandExecutor<'a> = dyn FnMut(&str) -> Result<CommandOutput, String> + 'a;
 
+fn normalize_version(value: &str) -> Option<String> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_string())
+    }
+}
+
 fn check_with_versions(
     item: &SoftwareItem,
     execute: &mut CommandExecutor<'_>,
@@ -49,16 +58,19 @@ fn check_with_versions(
         ));
     }
 
-    let current = current_output.stdout.trim().to_string();
-    let latest = latest_output.stdout.trim().to_string();
-    let has_update = !current.is_empty() && !latest.is_empty() && current != latest;
+    let current = normalize_version(&current_output.stdout);
+    let latest = normalize_version(&latest_output.stdout);
+    let has_update = match (&current, &latest) {
+        (Some(current), Some(latest)) => current != latest,
+        _ => false,
+    };
 
     Ok(CheckResult {
         item_id: item.id.clone(),
         checked_at: now_rfc3339(),
         has_update,
-        current_version: Some(current),
-        latest_version: Some(latest),
+        current_version: current,
+        latest_version: latest,
         details: "version comparison".to_string(),
         error: None,
     })
@@ -94,7 +106,18 @@ fn check_with_command(
     let current_version = if let Some(command) = &item.current_version_command {
         let version_output = execute(command)?;
         if version_output.exit_code == 0 {
-            Some(version_output.stdout.trim().to_string())
+            normalize_version(&version_output.stdout)
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    let latest_version = if let Some(command) = &item.latest_version_command {
+        let version_output = execute(command)?;
+        if version_output.exit_code == 0 {
+            normalize_version(&version_output.stdout)
         } else {
             None
         }
@@ -107,17 +130,22 @@ fn check_with_command(
         checked_at: now_rfc3339(),
         has_update,
         current_version,
-        latest_version: None,
+        latest_version,
         details: format!("check command output: {}", output.stdout),
         error: None,
     })
 }
 
 pub fn check_single_item(item: &SoftwareItem, execute: &mut CommandExecutor<'_>) -> CheckResult {
-    let result = if item.latest_version_command.is_some() {
+    let result = if item.update_check_command.is_some() {
+        check_with_command(item, execute)
+    } else if item.latest_version_command.is_some() {
         check_with_versions(item, execute)
     } else {
-        check_with_command(item, execute)
+        Err(format!(
+            "{} has neither update_check_command nor latest_version_command",
+            item.id
+        ))
     };
 
     match result {

@@ -122,7 +122,9 @@ impl Default for AppConfig {
                     current_version_command: Some(
                         "brew --version | head -n 1 | awk '{print $2}'".to_string(),
                     ),
-                    latest_version_command: None,
+                    latest_version_command: Some(
+                        "brew --version | head -n 1 | awk '{print $2}'".to_string(),
+                    ),
                     update_check_command: Some("brew outdated --quiet".to_string()),
                     update_check_regex: Some(".+".to_string()),
                     update_command: "brew update && brew upgrade".to_string(),
@@ -133,8 +135,14 @@ impl Default for AppConfig {
                     kind: "cli".to_string(),
                     enabled: true,
                     description: "Check and update Bun (if managed via brew)".to_string(),
-                    current_version_command: Some("bun --version".to_string()),
-                    latest_version_command: None,
+                    current_version_command: Some(
+                        "if command -v bun >/dev/null 2>&1; then bun --version; else echo ''; fi"
+                            .to_string(),
+                    ),
+                    latest_version_command: Some(
+                        "if brew info bun --json=v2 >/dev/null 2>&1; then brew info bun --json=v2 | sed -nE 's/.*\"stable\":[[:space:]]*\"([^\"]+)\".*/\\1/p' | head -n 1; elif command -v bun >/dev/null 2>&1; then bun --version; else echo ''; fi"
+                            .to_string(),
+                    ),
                     update_check_command: Some(
                         "if brew list bun >/dev/null 2>&1; then brew outdated --quiet bun; else echo ''; fi"
                             .to_string(),
