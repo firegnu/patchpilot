@@ -1,144 +1,120 @@
 :root {
-  font-family: "SF Pro Text", "Helvetica Neue", sans-serif;
-  --text-primary: #10243f;
-  --text-secondary: #304968;
-  --text-muted: #4c6485;
-  --bg-page: linear-gradient(145deg, #f6f9fc 0%, #e9f0f9 100%);
+  font-family: "SF Pro Display", "Avenir Next", "Helvetica Neue", sans-serif;
+  --text-primary: #161a22;
+  --text-secondary: #4c5463;
+  --text-muted: #70798a;
+  --bg-page: #f3f4f6;
   --bg-panel: #ffffff;
-  --border-panel: #d9e4f2;
-  --border-table: #e5edf8;
-  --btn-border: #2f527f;
-  --btn-bg: #ffffff;
-  --btn-text: #1a3558;
-  --btn-primary-bg: #1f5fff;
+  --border-panel: #dde2ea;
+  --border-table: #e8ebf1;
+  --btn-border: #d3d9e3;
+  --btn-bg: #f8f9fb;
+  --btn-text: #1f2633;
+  --btn-primary-bg: #171c25;
   --btn-primary-text: #ffffff;
-  --editor-border: #d4e0f0;
-  --state-latest-fg: #1f6b3b;
-  --state-latest-bg: #eaf8ef;
-  --state-latest-border: #9fd6b1;
-  --state-latest-row: #f4fcf7;
-  --state-outdated-fg: #8a5200;
-  --state-outdated-bg: #fff4df;
-  --state-outdated-border: #efcf8b;
-  --state-outdated-row: #fff9eb;
-  --state-checking-fg: #0f5a8a;
-  --state-checking-bg: #eaf7ff;
-  --state-checking-border: #9ad2f2;
-  --state-checking-row: #f2f9ff;
-  --state-error-fg: #8c2f28;
-  --state-error-bg: #fff0ee;
-  --state-error-border: #efb3ae;
-  --state-error-row: #fff6f5;
-  --state-unknown-fg: #475d78;
-  --state-unknown-bg: #eef3f8;
-  --state-unknown-border: #c8d6e6;
-  --state-unknown-row: #f6f9fc;
-  --state-disabled-fg: #5d6f84;
-  --state-disabled-bg: #edf1f6;
-  --state-disabled-border: #cad5e2;
-  --state-disabled-row: #f8fafd;
+  --editor-border: #d8dde6;
+  --state-latest-fg: #2d6e45;
+  --state-latest-bg: #edf7f0;
+  --state-latest-border: #b8d9c3;
+  --state-latest-row: #f6fbf7;
+  --state-outdated-fg: #8c560c;
+  --state-outdated-bg: #fef5e6;
+  --state-outdated-border: #edd0a2;
+  --state-outdated-row: #fffaf0;
+  --state-checking-fg: #24567d;
+  --state-checking-bg: #edf5fb;
+  --state-checking-border: #b8cfe0;
+  --state-checking-row: #f6fafe;
+  --state-error-fg: #8f3a32;
+  --state-error-bg: #fdf0ee;
+  --state-error-border: #e6c2bd;
+  --state-error-row: #fff7f6;
+  --state-unknown-fg: #5a6473;
+  --state-unknown-bg: #f2f4f7;
+  --state-unknown-border: #d4dae3;
+  --state-unknown-row: #f9fafb;
+  --state-disabled-fg: #687181;
+  --state-disabled-bg: #eff2f6;
+  --state-disabled-border: #d9dee7;
+  --state-disabled-row: #fafbfd;
+  --shadow-panel: 0 6px 22px rgba(16, 24, 40, 0.06);
+  --shadow-panel-hover: 0 10px 28px rgba(16, 24, 40, 0.1);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 
 :root[data-theme="dark"] {
-  --text-primary: #e6e8ee;
-  --text-secondary: #b7bdc9;
-  --text-muted: #959cad;
-  --bg-page: linear-gradient(155deg, #0f1116 0%, #141922 100%);
-  --bg-panel: #1a2029;
-  --border-panel: #2b3340;
-  --border-table: #2a313c;
-  --btn-border: #465063;
-  --btn-bg: #202734;
-  --btn-text: #e6e8ee;
-  --btn-primary-bg: #5a84ff;
-  --btn-primary-text: #f8faff;
-  --editor-border: #384052;
-  --state-latest-fg: #9fdbb7;
-  --state-latest-bg: #1c2d25;
-  --state-latest-border: #2f5a45;
-  --state-latest-row: #19271f;
-  --state-outdated-fg: #f2d083;
-  --state-outdated-bg: #2e281a;
-  --state-outdated-border: #6d5a30;
-  --state-outdated-row: #272113;
-  --state-checking-fg: #9dc2ff;
-  --state-checking-bg: #1e2b3f;
-  --state-checking-border: #37527f;
-  --state-checking-row: #1a2434;
-  --state-error-fg: #ffb4ad;
-  --state-error-bg: #32201f;
-  --state-error-border: #744038;
-  --state-error-row: #2b1d1d;
-  --state-unknown-fg: #b5becd;
-  --state-unknown-bg: #212936;
-  --state-unknown-border: #38465c;
-  --state-unknown-row: #1d2430;
-  --state-disabled-fg: #a1abbb;
-  --state-disabled-bg: #202632;
-  --state-disabled-border: #364154;
-  --state-disabled-row: #1c222d;
+  --text-primary: #edf0f4;
+  --text-secondary: #bcc4d1;
+  --text-muted: #9ca6b7;
+  --bg-page: #0f1319;
+  --bg-panel: #171c24;
+  --border-panel: #2a313d;
+  --border-table: #2a303a;
+  --btn-border: #3a4352;
+  --btn-bg: #1f2530;
+  --btn-text: #e7ebf2;
+  --btn-primary-bg: #eef2f6;
+  --btn-primary-text: #10151d;
+  --editor-border: #374050;
+  --state-latest-fg: #a6d9b9;
+  --state-latest-bg: #1d2b23;
+  --state-latest-border: #355848;
+  --state-latest-row: #19231d;
+  --state-outdated-fg: #f2cb88;
+  --state-outdated-bg: #2b2418;
+  --state-outdated-border: #615133;
+  --state-outdated-row: #251f14;
+  --state-checking-fg: #a6c8e0;
+  --state-checking-bg: #1d2731;
+  --state-checking-border: #3a5065;
+  --state-checking-row: #19212b;
+  --state-error-fg: #efb5af;
+  --state-error-bg: #2e201f;
+  --state-error-border: #69423f;
+  --state-error-row: #281c1c;
+  --state-unknown-fg: #bbc4d2;
+  --state-unknown-bg: #202733;
+  --state-unknown-border: #3a4558;
+  --state-unknown-row: #1a202a;
+  --state-disabled-fg: #aab4c3;
+  --state-disabled-bg: #1e242f;
+  --state-disabled-border: #374255;
+  --state-disabled-row: #181d27;
+  --shadow-panel: 0 8px 24px rgba(0, 0, 0, 0.28);
+  --shadow-panel-hover: 0 12px 30px rgba(0, 0, 0, 0.34);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 .status-badge {
   border-radius: 999px;
   padding: 4px 10px;
   font-size: 12px;
-  font-weight: 600;
-  border: 1px solid #cad8eb;
-  color: #274569;
-  background: #f3f7fc;
+  font-weight: 650;
+  border: 1px solid var(--border-panel);
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--bg-panel) 88%, #fff 12%);
 }
 
 .status-running {
-  color: #0f5a8a;
-  border-color: #9ad2f2;
-  background: #eaf7ff;
+  color: var(--state-checking-fg);
+  border-color: var(--state-checking-border);
+  background: var(--state-checking-bg);
 }
 
 .status-success {
-  color: #226239;
-  border-color: #97d8af;
-  background: #ebf9f0;
+  color: var(--state-latest-fg);
+  border-color: var(--state-latest-border);
+  background: var(--state-latest-bg);
 }
 
 .status-failed {
-  color: #8c2f28;
-  border-color: #efb3ae;
-  background: #fff0ee;
+  color: var(--state-error-fg);
+  border-color: var(--state-error-border);
+  background: var(--state-error-bg);
 }
 
 .status-skipped {
-  color: #6d4d07;
-  border-color: #f3d88b;
-  background: #fff7df;
-}
-
-:root[data-theme="dark"] .status-badge {
-  border-color: #334056;
-  color: #c7d0dd;
-  background: #1f2631;
-}
-
-:root[data-theme="dark"] .status-running {
-  color: #9dc2ff;
-  border-color: #37527f;
-  background: #1e2b3f;
-}
-
-:root[data-theme="dark"] .status-success {
-  color: #9fdbb7;
-  border-color: #2f5a45;
-  background: #1c2d25;
-}
-
-:root[data-theme="dark"] .status-failed {
-  color: #ffb4ad;
-  border-color: #744038;
-  background: #32201f;
-}
-
-:root[data-theme="dark"] .status-skipped {
-  color: #f2d083;
-  border-color: #6d5a30;
-  background: #2e281a;
+  color: var(--state-outdated-fg);
+  border-color: var(--state-outdated-border);
+  background: var(--state-outdated-bg);
 }

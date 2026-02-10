@@ -6,16 +6,28 @@ body {
   margin: 0;
   color: var(--text-primary);
   background: var(--bg-page);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 main {
-  padding: 24px;
-  max-width: 1100px;
+  padding: 26px 22px 34px;
+  max-width: 1160px;
   margin: 0 auto;
 }
 
-header {
-  margin-bottom: 20px;
+.app-header {
+  margin-bottom: 18px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.app-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 h1,
@@ -24,9 +36,28 @@ p {
   margin: 0;
 }
 
-header p {
-  margin-top: 8px;
+h1 {
+  font-size: 27px;
+  line-height: 1.1;
+  font-weight: 740;
+  letter-spacing: -0.02em;
+}
+
+.app-subtitle {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.app-status {
+  max-width: min(52%, 720px);
   color: var(--text-secondary);
+  background: color-mix(in srgb, var(--bg-panel) 88%, #fff 12%);
+  border: 1px solid var(--border-panel);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 12px;
+  line-height: 1.35;
+  box-shadow: var(--shadow-inset);
 }
 
 .muted {
@@ -34,12 +65,66 @@ header p {
   color: var(--text-muted);
 }
 
+.runtime-hint {
+  margin: 4px 0 14px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
 .panel {
   background: var(--bg-panel);
   border: 1px solid var(--border-panel);
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 16px;
+  border-radius: 14px;
+  padding: 16px 16px 14px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow-panel), var(--shadow-inset);
+  transition: box-shadow 140ms ease;
+}
+
+.panel:hover {
+  box-shadow: var(--shadow-panel-hover), var(--shadow-inset);
+}
+
+.scheduler-panel {
+  margin-bottom: 12px;
+}
+
+.scheduler-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.scheduler-item {
+  border: 1px solid var(--border-table);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-panel) 86%, #fff 14%);
+  box-shadow: var(--shadow-inset);
+  padding: 10px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scheduler-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.scheduler-value {
+  font-size: 13px;
+  font-weight: 680;
+  color: var(--text-primary);
+}
+
+.scheduler-message {
+  margin: 10px 2px 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.scheduler-message-error {
+  color: var(--state-error-fg);
 }
 
 .panel-header {
@@ -67,13 +152,21 @@ header p {
   border: 1px solid var(--btn-border);
   background: var(--btn-bg);
   color: var(--btn-text);
-  border-radius: 8px;
-  padding: 6px 10px;
+  border-radius: 9px;
+  min-height: 31px;
+  padding: 5px 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: background-color 120ms ease, border-color 120ms ease, transform 120ms ease;
   cursor: pointer;
 }
 
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.42;
   cursor: not-allowed;
 }
 
@@ -86,6 +179,14 @@ header p {
 table {
   width: 100%;
   border-collapse: collapse;
+}
+
+thead th {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  background: color-mix(in srgb, var(--bg-panel) 76%, #fff 24%);
 }
 
 .history-table {
@@ -103,7 +204,7 @@ th,
 td {
   text-align: left;
   border-bottom: 1px solid var(--border-table);
-  padding: 10px 8px;
+  padding: 11px 10px;
   vertical-align: top;
 }
 
@@ -146,10 +247,10 @@ td {
   align-items: center;
   width: fit-content;
   border-radius: 999px;
-  padding: 3px 9px;
+  padding: 4px 10px;
   border: 1px solid;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 680;
   letter-spacing: 0.01em;
 }
 
@@ -271,7 +372,7 @@ small {
   border: 1px solid var(--btn-border);
   background: var(--btn-bg);
   color: var(--btn-text);
-  border-radius: 8px;
+  border-radius: 9px;
   padding: 4px 8px;
 }
 
@@ -280,8 +381,23 @@ small {
     padding: 14px;
   }
 
+  .app-header,
   .panel-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .app-status {
+    max-width: 100%;
+  }
+
+  .scheduler-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .scheduler-grid {
+    grid-template-columns: 1fr;
   }
 }
