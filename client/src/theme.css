@@ -1,0 +1,66 @@
+:root {
+  font-family: "SF Pro Text", "Helvetica Neue", sans-serif;
+  --text-primary: #10243f;
+  --text-secondary: #304968;
+  --text-muted: #4c6485;
+  --bg-page: linear-gradient(145deg, #f6f9fc 0%, #e9f0f9 100%);
+  --bg-panel: #ffffff;
+  --border-panel: #d9e4f2;
+  --border-table: #e5edf8;
+  --btn-border: #2f527f;
+  --btn-bg: #ffffff;
+  --btn-text: #1a3558;
+  --btn-primary-bg: #1f5fff;
+  --btn-primary-text: #ffffff;
+  --editor-border: #d4e0f0;
+}
+
+:root[data-theme="dark"] {
+  --text-primary: #dbe8ff;
+  --text-secondary: #a8bad8;
+  --text-muted: #91a6cb;
+  --bg-page: linear-gradient(145deg, #0c1426 0%, #111b2f 100%);
+  --bg-panel: #14213a;
+  --border-panel: #2b3d62;
+  --border-table: #2a3b5e;
+  --btn-border: #4f6ea5;
+  --btn-bg: #182744;
+  --btn-text: #dbe8ff;
+  --btn-primary-bg: #4f8fff;
+  --btn-primary-text: #081327;
+  --editor-border: #38507a;
+}
+
+.status-badge {
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid #cad8eb;
+  color: #274569;
+  background: #f3f7fc;
+}
+
+.status-running {
+  color: #0f5a8a;
+  border-color: #9ad2f2;
+  background: #eaf7ff;
+}
+
+.status-success {
+  color: #226239;
+  border-color: #97d8af;
+  background: #ebf9f0;
+}
+
+.status-failed {
+  color: #8c2f28;
+  border-color: #efb3ae;
+  background: #fff0ee;
+}
+
+.status-skipped {
+  color: #6d4d07;
+  border-color: #f3d88b;
+  background: #fff7df;
+}

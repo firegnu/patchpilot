@@ -1,0 +1,47 @@
+{
+  "check_interval_minutes": 60,
+  "command_timeout_seconds": 30,
+  "theme_mode": "system",
+  "shared_update_commands": [
+    "brew update",
+    "brew upgrade --dry-run"
+  ],
+  "items": [
+    {
+      "id": "brew",
+      "name": "Homebrew",
+      "kind": "cli",
+      "enabled": true,
+      "description": "Check Homebrew formula updates",
+      "current_version_command": "brew --version | head -n 1 | awk '{print $2}'",
+      "latest_version_command": null,
+      "update_check_command": "brew outdated --quiet",
+      "update_check_regex": ".+",
+      "update_command": "brew update && brew upgrade"
+    },
+    {
+      "id": "bun",
+      "name": "Bun",
+      "kind": "cli",
+      "enabled": true,
+      "description": "Check Bun update status (brew-managed)",
+      "current_version_command": "bun --version",
+      "latest_version_command": null,
+      "update_check_command": "if brew list bun >/dev/null 2>&1; then brew outdated --quiet bun; else echo ''; fi",
+      "update_check_regex": ".+",
+      "update_command": "if brew list bun >/dev/null 2>&1; then brew upgrade bun; else echo 'bun is not managed by brew'; fi"
+    },
+    {
+      "id": "timeout-demo",
+      "name": "Timeout Demo",
+      "kind": "cli",
+      "enabled": false,
+      "description": "Intentional timeout test item for PoC verification",
+      "current_version_command": null,
+      "latest_version_command": null,
+      "update_check_command": "sleep 35 && echo done",
+      "update_check_regex": ".+",
+      "update_command": "sleep 35 && echo update"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+# JavaScript
+node_modules
+client/node_modules
+client/dist
+
+# Rust/Tauri
+src-tauri/target
+src-tauri/gen
+
+# macOS
+.DS_Store
