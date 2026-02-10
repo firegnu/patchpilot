@@ -19,6 +19,8 @@ import { applyThemeMode } from './lib/theme';
 import type { AppConfig, CheckResult, ExecutionHistoryEntry, SoftwareItem, ThemeMode } from './types/app';
 const formatError = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 const themeModeLabel = (mode: ThemeMode): string => ({ system: '跟随系统', light: '浅色', dark: '深色' })[mode];
+const isThemeMode = (value: unknown): value is ThemeMode =>
+  value === 'system' || value === 'light' || value === 'dark';
 const isManualItem = (item: SoftwareItem): boolean => item.id === 'brew' || item.id === 'bun';
 const mapLatestResultsToResultMap = (items: Record<string, { item_id: string; checked_at: string; has_update: boolean; current_version: string | null; latest_version: string | null; error: string | null }>): Record<string, CheckResult> => {
   const next: Record<string, CheckResult> = {};
@@ -104,6 +106,7 @@ export default function App() {
     let unlistenConfig: (() => void) | undefined;
     let unlistenLatest: (() => void) | undefined;
     let unlistenHistory: (() => void) | undefined;
+    let unlistenThemeMode: (() => void) | undefined;
 
     void (async () => {
       unlistenConfig = await listen('patchpilot://config-updated', () => {
@@ -115,12 +118,20 @@ export default function App() {
       unlistenHistory = await listen('patchpilot://history-updated', () => {
         void refreshHistory();
       });
+      unlistenThemeMode = await listen<ThemeMode>('patchpilot://theme-mode-updated', (event) => {
+        const mode = event.payload;
+        if (!isThemeMode(mode)) {
+          return;
+        }
+        setConfig((prev) => (prev ? { ...prev, theme_mode: mode } : prev));
+      });
     })();
 
     return () => {
       unlistenConfig?.();
       unlistenLatest?.();
       unlistenHistory?.();
+      unlistenThemeMode?.();
     };
   }, []);
   const setAutoItemsChecking = (itemIds: string[], checking: boolean): void => {

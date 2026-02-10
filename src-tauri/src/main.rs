@@ -408,6 +408,25 @@ fn emit_config_event(app: &AppHandle) {
     let _ = app.emit("patchpilot://config-updated", ());
 }
 
+fn emit_theme_mode_event(app: &AppHandle, mode: &str) {
+    let _ = app.emit("patchpilot://theme-mode-updated", mode.to_string());
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.emit("patchpilot://theme-mode-updated", mode.to_string());
+        let script = match mode {
+            "light" => {
+                "document.documentElement.setAttribute('data-theme','light');document.documentElement.style.colorScheme='light';"
+            }
+            "dark" => {
+                "document.documentElement.setAttribute('data-theme','dark');document.documentElement.style.colorScheme='dark';"
+            }
+            _ => {
+                "const d=document.documentElement;const dark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;const t=dark?'dark':'light';d.setAttribute('data-theme',t);d.style.colorScheme=t;"
+            }
+        };
+        let _ = window.eval(script);
+    }
+}
+
 fn run_tray_task_impl(app: &AppHandle, task: TrayTask) -> Result<String, String> {
     match task {
         TrayTask::CheckManual => {
@@ -577,6 +596,7 @@ fn handle_menu_event(app: &AppHandle, id: &str) {
                 Ok(_) => {
                     set_notice(app, format!("主题已切换为 {mode}"));
                     emit_config_event(app);
+                    emit_theme_mode_event(app, mode);
                 }
                 Err(error) => set_notice(app, format!("切换主题失败：{error}")),
             }
@@ -623,12 +643,18 @@ fn handle_menu_event(app: &AppHandle, id: &str) {
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
+            #[cfg(target_os = "macos")]
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+
             app.manage(Mutex::new(TrayRuntimeState::default()));
             let app_handle = app.handle().clone();
-            let tray_icon = app_handle
-                .default_window_icon()
-                .cloned()
-                .or_else(|| Image::from_bytes(include_bytes!("../icons/icon.png")).ok());
+            let tray_icon =
+                Image::from_bytes(include_bytes!("../icons/tray-template.png")).map_err(|error| {
+                    std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        format!("failed to load tray template icon: {error}"),
+                    )
+                })?;
             let menu = match build_tray_menu(&app_handle) {
                 Ok(menu) => menu,
                 Err(error) => {
@@ -662,10 +688,12 @@ fn main() {
                         }
                     }
                 });
-            if let Some(icon) = tray_icon {
-                builder = builder.icon(icon);
-            }
+            builder = builder.icon(tray_icon);
             builder.build(app)?;
+
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.hide();
+            }
 
             Ok(())
         })
