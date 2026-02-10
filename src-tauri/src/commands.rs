@@ -15,6 +15,10 @@ fn find_item<'a>(config: &'a AppConfig, item_id: &str) -> Option<&'a SoftwareIte
     config.items.iter().find(|item| item.id == item_id)
 }
 
+fn is_manual_item(item: &SoftwareItem) -> bool {
+    matches!(item.id.as_str(), "brew" | "bun")
+}
+
 fn check_item_impl(app: &AppHandle, item_id: &str) -> Result<CheckResult, String> {
     let config = config_store::load_or_init_config(app)?;
     let timeout_seconds = default_timeout_seconds(&config);
@@ -25,16 +29,22 @@ fn check_item_impl(app: &AppHandle, item_id: &str) -> Result<CheckResult, String
     Ok(result)
 }
 
-fn check_all_impl(app: &AppHandle) -> Result<Vec<CheckResult>, String> {
+fn check_items_impl(
+    app: &AppHandle,
+    action: &str,
+    skip_action: &str,
+    skip_message: &str,
+    filter: fn(&SoftwareItem) -> bool,
+) -> Result<Vec<CheckResult>, String> {
     let _guard = match check_all_guard::CheckAllGuard::try_acquire() {
         Some(guard) => guard,
         None => {
             history_events::append_entry_safe(
                 app,
                 history_events::check_all_entry(
-                    "check-all-skip",
+                    skip_action,
                     false,
-                    "已跳过：上一轮全量检查仍在运行".to_string(),
+                    skip_message.to_string(),
                 ),
             );
             return Err("check-all is already running".to_string());
@@ -46,7 +56,7 @@ fn check_all_impl(app: &AppHandle) -> Result<Vec<CheckResult>, String> {
     let results: Vec<CheckResult> = config
         .items
         .iter()
-        .filter(|item| item.enabled)
+        .filter(|item| filter(item))
         .map(|item| {
             let mut execute =
                 |command: &str| shell_runner::run_shell_command(command, timeout_seconds);
@@ -59,7 +69,7 @@ fn check_all_impl(app: &AppHandle) -> Result<Vec<CheckResult>, String> {
     history_events::append_entry_safe(
         app,
         history_events::check_all_entry(
-            "check-all",
+            action,
             error_count == 0,
             format!(
                 "已检查 {} 项，发现 {} 项更新，{} 项错误",
@@ -70,6 +80,26 @@ fn check_all_impl(app: &AppHandle) -> Result<Vec<CheckResult>, String> {
         ),
     );
     Ok(results)
+}
+
+fn check_all_impl(app: &AppHandle) -> Result<Vec<CheckResult>, String> {
+    check_items_impl(
+        app,
+        "check-all",
+        "check-all-skip",
+        "已跳过：上一轮全量检查仍在运行",
+        |item| item.enabled && is_manual_item(item),
+    )
+}
+
+fn check_auto_items_impl(app: &AppHandle) -> Result<Vec<CheckResult>, String> {
+    check_items_impl(
+        app,
+        "auto-check",
+        "auto-check-skip",
+        "已跳过：上一轮自动检查仍在运行",
+        |item| item.enabled && !is_manual_item(item),
+    )
 }
 
 fn run_item_update_impl(app: &AppHandle, item_id: &str) -> Result<UpdateResult, String> {
@@ -131,6 +161,13 @@ pub async fn check_all(app: AppHandle) -> Result<Vec<CheckResult>, String> {
     tauri::async_runtime::spawn_blocking(move || check_all_impl(&app))
         .await
         .map_err(|error| format!("check_all task failed: {error}"))?
+}
+
+#[tauri::command]
+pub async fn check_auto_items(app: AppHandle) -> Result<Vec<CheckResult>, String> {
+    tauri::async_runtime::spawn_blocking(move || check_auto_items_impl(&app))
+        .await
+        .map_err(|error| format!("check_auto_items task failed: {error}"))?
 }
 
 #[tauri::command]

@@ -3,30 +3,38 @@ import ConfigEditor from './components/ConfigEditor';
 import HistoryPanel from './components/HistoryPanel';
 import MonitorPanel from './components/MonitorPanel';
 import SharedCommandsPanel from './components/SharedCommandsPanel';
-import { checkAll, checkItem, loadConfig, loadHistory, runAdHocCommand, runItemUpdate, saveConfig } from './lib/ipc';
+import { checkAll, checkAutoItems, checkItem, loadConfig, loadHistory, runAdHocCommand, runItemUpdate, saveConfig } from './lib/ipc';
 import { normalizeConfig, validateConfig } from './lib/config';
 import { applyThemeMode } from './lib/theme';
 import type { AppConfig, CheckResult, ExecutionHistoryEntry, SoftwareItem, ThemeMode } from './types/app';
-
 const HISTORY_PAGE_SIZE = 20;
 const HISTORY_MAX_LIMIT = 200;
-
 const formatError = (error: unknown): string => (error instanceof Error ? error.message : String(error));
-const themeModeLabel = (mode: ThemeMode): string =>
-  ({ system: '跟随系统', light: '浅色', dark: '深色' })[mode];
+const themeModeLabel = (mode: ThemeMode): string => ({ system: '跟随系统', light: '浅色', dark: '深色' })[mode];
+const isManualItem = (item: SoftwareItem): boolean => item.id === 'brew' || item.id === 'bun';
 export default function App() {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [editorText, setEditorText] = useState('');
   const [message, setMessage] = useState('正在加载配置...');
   const [resultMap, setResultMap] = useState<Record<string, CheckResult>>({});
   const [checkingMap, setCheckingMap] = useState<Record<string, boolean>>({});
+  const [autoCheckingMap, setAutoCheckingMap] = useState<Record<string, boolean>>({});
   const [updatingMap, setUpdatingMap] = useState<Record<string, boolean>>({});
   const [historyEntries, setHistoryEntries] = useState<ExecutionHistoryEntry[]>([]);
   const [historyLimit, setHistoryLimit] = useState(HISTORY_PAGE_SIZE);
   const [checkAllRunning, setCheckAllRunning] = useState(false);
+  const [autoCheckRunning, setAutoCheckRunning] = useState(false);
   const checkAllRunningRef = useRef(false);
+  const autoCheckRunningRef = useRef(false);
   const enabledItems = useMemo(() => config?.items.filter((item) => item.enabled) ?? [], [config]);
+  const manualItems = useMemo(() => enabledItems.filter((item) => isManualItem(item)), [enabledItems]);
+  const autoItems = useMemo(() => enabledItems.filter((item) => !isManualItem(item)), [enabledItems]);
+  const mergedCheckingMap = useMemo(
+    () => ({ ...checkingMap, ...autoCheckingMap }),
+    [checkingMap, autoCheckingMap]
+  );
   const latestCheckAllEntry = useMemo(() => historyEntries.find((entry) => entry.action === 'check-all' || entry.action === 'check-all-skip') ?? null, [historyEntries]);
+  const latestAutoCheckEntry = useMemo(() => historyEntries.find((entry) => entry.action === 'auto-check' || entry.action === 'auto-check-skip') ?? null, [historyEntries]);
   const refreshHistory = async (limit = historyLimit): Promise<void> => {
     try {
       const entries = await loadHistory(limit);
@@ -45,18 +53,11 @@ export default function App() {
   useEffect(() => {
     void reloadConfig().catch((error) => setMessage(`加载配置失败：${formatError(error)}`));
   }, []);
+  useEffect(() => (config ? applyThemeMode(config.theme_mode) : undefined), [config?.theme_mode]);
   useEffect(() => {
-    if (!config) {
-      return;
-    }
-    return applyThemeMode(config.theme_mode);
-  }, [config?.theme_mode]);
-  useEffect(() => {
-    if (!config) {
-      return;
-    }
-    const ms = Math.max(config.check_interval_minutes, 1) * 60 * 1000;
-    const timer = setInterval(() => void handleCheckAll(), ms);
+    if (!config) return;
+    void handleAutoCheck();
+    const timer = setInterval(() => void handleAutoCheck(), Math.max(config.check_interval_minutes, 1) * 60 * 1000);
     return () => clearInterval(timer);
   }, [config]);
   const handleCheckItem = async (itemId: string): Promise<void> => {
@@ -94,6 +95,50 @@ export default function App() {
     } finally {
       checkAllRunningRef.current = false;
       setCheckAllRunning(false);
+    }
+  };
+  const handleAutoCheck = async (): Promise<void> => {
+    if (!config || autoCheckRunningRef.current) {
+      return;
+    }
+    const autoItemIds = config.items
+      .filter((item) => item.enabled && !isManualItem(item))
+      .map((item) => item.id);
+    autoCheckRunningRef.current = true;
+    setAutoCheckRunning(true);
+    if (autoItemIds.length > 0) {
+      setAutoCheckingMap((prev) => {
+        const next = { ...prev };
+        autoItemIds.forEach((id) => {
+          next[id] = true;
+        });
+        return next;
+      });
+    }
+    try {
+      const results = await checkAutoItems();
+      if (results.length > 0) {
+        const nextMap = results.reduce<Record<string, CheckResult>>((acc, item) => {
+          acc[item.item_id] = item;
+          return acc;
+        }, {});
+        setResultMap((prev) => ({ ...prev, ...nextMap }));
+        await refreshHistory();
+      }
+    } catch (error) {
+      console.error('自动检查失败', error);
+    } finally {
+      if (autoItemIds.length > 0) {
+        setAutoCheckingMap((prev) => {
+          const next = { ...prev };
+          autoItemIds.forEach((id) => {
+            next[id] = false;
+          });
+          return next;
+        });
+      }
+      autoCheckRunningRef.current = false;
+      setAutoCheckRunning(false);
     }
   };
   const handleRunUpdate = async (item: SoftwareItem): Promise<void> => {
@@ -167,9 +212,11 @@ export default function App() {
       </header>
       {config && <SharedCommandsPanel checkIntervalMinutes={config.check_interval_minutes} timeoutSeconds={config.command_timeout_seconds} themeMode={config.theme_mode} commands={config.shared_update_commands} onRunSharedCommand={handleRunSharedCommand} onChangeThemeMode={handleChangeThemeMode} />}
       <MonitorPanel
-        items={enabledItems}
+        title="Homebrew 与 Bun（手动区）"
+        batchLabel="手动全量检查"
+        items={manualItems}
         resultMap={resultMap}
-        checkingMap={checkingMap}
+        checkingMap={mergedCheckingMap}
         updatingMap={updatingMap}
         checkAllRunning={checkAllRunning}
         latestCheckAllEntry={latestCheckAllEntry}
@@ -177,13 +224,21 @@ export default function App() {
         onCheckAll={handleCheckAll}
         onRunUpdate={handleRunUpdate}
       />
-      <ConfigEditor value={editorText} onChange={setEditorText} onSave={handleSaveConfig} onReload={reloadConfig} />
-      <HistoryPanel
-        entries={historyEntries}
-        canLoadMore={historyEntries.length >= historyLimit && historyLimit < HISTORY_MAX_LIMIT}
-        onLoadMore={handleLoadMoreHistory}
-        onReload={refreshHistory}
+      <MonitorPanel
+        title="CLI 与 App（自动区）"
+        batchLabel="立即检查自动区"
+        items={autoItems}
+        resultMap={resultMap}
+        checkingMap={mergedCheckingMap}
+        updatingMap={updatingMap}
+        checkAllRunning={autoCheckRunning}
+        latestCheckAllEntry={latestAutoCheckEntry}
+        onCheckItem={handleCheckItem}
+        onCheckAll={handleAutoCheck}
+        onRunUpdate={handleRunUpdate}
       />
+      <ConfigEditor value={editorText} onChange={setEditorText} onSave={handleSaveConfig} onReload={reloadConfig} />
+      <HistoryPanel entries={historyEntries} canLoadMore={historyEntries.length >= historyLimit && historyLimit < HISTORY_MAX_LIMIT} onLoadMore={handleLoadMoreHistory} onReload={refreshHistory} />
     </main>
   );
 }

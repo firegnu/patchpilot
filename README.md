@@ -112,7 +112,7 @@ PatchPilot/
 
 ```json
 {
-  "check_interval_minutes": 360,
+  "check_interval_minutes": 480,
   "command_timeout_seconds": 120,
   "theme_mode": "system",
   "shared_update_commands": ["brew update", "brew upgrade"],

@@ -77,7 +77,7 @@
 - `ExecutionHistoryEntry`（历史记录主结构）
 
 ### 默认值
-- `check_interval_minutes = 360`
+- `check_interval_minutes = 480`
 - `command_timeout_seconds = 120`
 - history 保留条数上限 = 200
 

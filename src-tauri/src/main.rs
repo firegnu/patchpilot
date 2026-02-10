@@ -59,6 +59,7 @@ fn main() {
             commands::save_config,
             commands::check_item,
             commands::check_all,
+            commands::check_auto_items,
             commands::run_item_update,
             commands::run_ad_hoc_command,
             commands::load_history

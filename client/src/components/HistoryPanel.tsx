@@ -23,6 +23,8 @@ const formatAction = (action: string): string => {
     'check-item': '单项检查',
     'check-all': '全量检查',
     'check-all-skip': '全量检查（跳过）',
+    'auto-check': '自动检查',
+    'auto-check-skip': '自动检查（跳过）',
     'run-item-update': '执行更新',
     'run-shared-command': '执行共享命令',
   };
@@ -36,7 +38,11 @@ const matchFilter = (entry: ExecutionHistoryEntry, filter: HistoryFilter): boole
     return true;
   }
   if (filter === 'check') {
-    return entry.action.startsWith('check-');
+    return (
+      entry.action.startsWith('check-') ||
+      entry.action === 'auto-check' ||
+      entry.action === 'auto-check-skip'
+    );
   }
   if (filter === 'update') {
     return entry.action === 'run-item-update';

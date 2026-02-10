@@ -1,6 +1,8 @@
 import type { CheckResult, ExecutionHistoryEntry, SoftwareItem } from '../types/app';
 
 interface MonitorPanelProps {
+  title: string;
+  batchLabel: string;
   items: SoftwareItem[];
   resultMap: Record<string, CheckResult>;
   checkingMap: Record<string, boolean>;
@@ -37,13 +39,15 @@ const resolveCheckAllState = (
   if (!latestCheckAllEntry) {
     return 'idle';
   }
-  if (latestCheckAllEntry.action === 'check-all-skip') {
+  if (latestCheckAllEntry.action.endsWith('-skip')) {
     return 'skipped';
   }
   return latestCheckAllEntry.success ? 'success' : 'failed';
 };
 
 export default function MonitorPanel({
+  title,
+  batchLabel,
   items,
   resultMap,
   checkingMap,
@@ -63,15 +67,15 @@ export default function MonitorPanel({
     idle: '空闲',
   }[checkAllState];
   const checkAllStatus = checkAllRunning
-    ? '全量检查正在运行...'
+    ? `${batchLabel}正在运行...`
     : latestCheckAllEntry
-      ? `最近一次全量检查：${new Date(latestCheckAllEntry.recorded_at).toLocaleString('zh-CN')} | ${latestCheckAllEntry.summary}`
-      : '全量检查尚未执行。';
+      ? `最近一次${batchLabel}：${new Date(latestCheckAllEntry.recorded_at).toLocaleString('zh-CN')} | ${latestCheckAllEntry.summary}`
+      : `${batchLabel}尚未执行。`;
 
   return (
     <section className="panel">
       <div className="panel-header">
-        <h2>软件监控</h2>
+        <h2>{title}</h2>
         <div className="inline-actions">
           <span className={`status-badge status-${checkAllState}`}>{badgeText}</span>
           <button
@@ -80,11 +84,12 @@ export default function MonitorPanel({
             disabled={checkAllRunning}
             onClick={() => void onCheckAll()}
           >
-            {checkAllRunning ? '检查中...' : '全量检查'}
+            {checkAllRunning ? '检查中...' : batchLabel}
           </button>
         </div>
       </div>
       <p className="muted">{checkAllStatus}</p>
+      {items.length === 0 && <p>当前区域暂无启用项。</p>}
       <table>
         <thead>
           <tr>
