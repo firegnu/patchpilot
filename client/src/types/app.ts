@@ -1,4 +1,4 @@
-export type SoftwareKind = 'cli' | 'gui' | 'app';
+export type SoftwareKind = 'cli' | 'gui' | 'app' | 'runtime';
 export type ThemeMode = 'light' | 'dark' | 'system';
 
 export interface SoftwareItem {
@@ -19,6 +19,7 @@ export interface AppConfig {
   command_timeout_seconds: number;
   theme_mode: ThemeMode;
   auto_check_enabled: boolean;
+  auto_check_manual_enabled: boolean;
   shared_update_commands: string[];
   items: SoftwareItem[];
 }

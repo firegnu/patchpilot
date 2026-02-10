@@ -4,18 +4,22 @@ interface SharedCommandsPanelProps {
   checkIntervalMinutes: number;
   timeoutSeconds: number;
   themeMode: ThemeMode;
+  autoCheckManualEnabled: boolean;
   commands: string[];
   onRunSharedCommand: (command: string) => Promise<void>;
   onChangeThemeMode: (mode: ThemeMode) => Promise<void>;
+  onToggleManualAutoCheck: (enabled: boolean) => Promise<void>;
 }
 
 export default function SharedCommandsPanel({
   checkIntervalMinutes,
   timeoutSeconds,
   themeMode,
+  autoCheckManualEnabled,
   commands,
   onRunSharedCommand,
   onChangeThemeMode,
+  onToggleManualAutoCheck,
 }: SharedCommandsPanelProps) {
   return (
     <section className="panel">
@@ -35,6 +39,14 @@ export default function SharedCommandsPanel({
               <option value="light">浅色</option>
               <option value="dark">深色</option>
             </select>
+          </label>
+          <label className="theme-mode">
+            <input
+              type="checkbox"
+              checked={autoCheckManualEnabled}
+              onChange={(event) => void onToggleManualAutoCheck(event.target.checked)}
+            />
+            手动区自动检查
           </label>
         </div>
       </div>

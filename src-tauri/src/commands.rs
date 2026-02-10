@@ -29,6 +29,10 @@ fn is_auto_app_item(item: &SoftwareItem) -> bool {
     item.enabled && !is_manual_item(item) && (item.kind == "gui" || item.kind == "app")
 }
 
+fn is_runtime_item(item: &SoftwareItem) -> bool {
+    item.enabled && item.kind == "runtime"
+}
+
 fn check_item_impl(app: &AppHandle, item_id: &str) -> Result<CheckResult, String> {
     let config = config_store::load_or_init_config(app)?;
     let timeout_seconds = default_timeout_seconds(&config);
@@ -114,7 +118,7 @@ fn check_auto_items_impl(app: &AppHandle) -> Result<Vec<CheckResult>, String> {
         "auto-check",
         "auto-check-skip",
         "已跳过：上一轮自动检查仍在运行",
-        |item| item.enabled && !is_manual_item(item),
+        |item| is_auto_cli_item(item) || is_auto_app_item(item),
     )
 }
 
@@ -138,9 +142,20 @@ fn check_auto_app_items_impl(app: &AppHandle) -> Result<Vec<CheckResult>, String
     )
 }
 
+fn check_runtime_items_impl(app: &AppHandle) -> Result<Vec<CheckResult>, String> {
+    check_items_impl(
+        app,
+        "check-runtime",
+        "check-runtime-skip",
+        "已跳过：上一轮运行时检查仍在运行",
+        is_runtime_item,
+    )
+}
+
 fn check_everything_impl(app: &AppHandle) -> Result<Vec<CheckResult>, String> {
     let mut results = Vec::new();
     results.extend(check_all_impl(app)?);
+    results.extend(check_runtime_items_impl(app)?);
     results.extend(check_auto_cli_items_impl(app)?);
     results.extend(check_auto_app_items_impl(app)?);
     Ok(results)
@@ -181,6 +196,14 @@ fn run_ad_hoc_command_impl(app: &AppHandle, command: &str) -> Result<CommandOutp
         ),
     );
     Ok(output)
+}
+
+fn get_active_node_version_impl() -> String {
+    let command = "if command -v node >/dev/null 2>&1; then node --version | sed -E 's/^v//'; else echo ''; fi";
+    match shell_runner::run_shell_command(command, 20) {
+        Ok(output) if output.exit_code == 0 => output.stdout.trim().to_string(),
+        _ => String::new(),
+    }
 }
 
 #[tauri::command]
@@ -234,6 +257,13 @@ pub async fn check_auto_app_items(app: AppHandle) -> Result<Vec<CheckResult>, St
 }
 
 #[tauri::command]
+pub async fn check_runtime_items(app: AppHandle) -> Result<Vec<CheckResult>, String> {
+    tauri::async_runtime::spawn_blocking(move || check_runtime_items_impl(&app))
+        .await
+        .map_err(|error| format!("check_runtime_items task failed: {error}"))?
+}
+
+#[tauri::command]
 pub async fn run_item_update(app: AppHandle, item_id: String) -> Result<UpdateResult, String> {
     tauri::async_runtime::spawn_blocking(move || run_item_update_impl(&app, &item_id))
         .await
@@ -245,6 +275,13 @@ pub async fn run_ad_hoc_command(app: AppHandle, command: String) -> Result<Comma
     tauri::async_runtime::spawn_blocking(move || run_ad_hoc_command_impl(&app, &command))
         .await
         .map_err(|error| format!("run_ad_hoc_command task failed: {error}"))?
+}
+
+#[tauri::command]
+pub async fn get_active_node_version() -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(get_active_node_version_impl)
+        .await
+        .map_err(|error| format!("get_active_node_version task failed: {error}"))
 }
 
 #[tauri::command]

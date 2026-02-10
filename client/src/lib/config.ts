@@ -16,6 +16,9 @@ export const validateConfig = (config: AppConfig): string | null => {
   if (typeof config.auto_check_enabled !== 'boolean') {
     return 'auto_check_enabled 必须是 boolean';
   }
+  if (typeof config.auto_check_manual_enabled !== 'boolean') {
+    return 'auto_check_manual_enabled 必须是 boolean';
+  }
   return null;
 };
 
@@ -28,6 +31,10 @@ export const normalizeConfig = (payload: Partial<AppConfig>): AppConfig => ({
       ? payload.theme_mode
       : 'system',
   auto_check_enabled: typeof payload.auto_check_enabled === 'boolean' ? payload.auto_check_enabled : true,
+  auto_check_manual_enabled:
+    typeof payload.auto_check_manual_enabled === 'boolean'
+      ? payload.auto_check_manual_enabled
+      : true,
   shared_update_commands: payload.shared_update_commands ?? [],
   items: payload.items ?? [],
 });

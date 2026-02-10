@@ -6,8 +6,10 @@ import {
   checkAll,
   checkAutoAppItems,
   checkAutoCliItems,
+  checkRuntimeItems,
   checkItem,
   loadConfig,
+  getActiveNodeVersion,
   loadHistory,
   loadLatestResults,
   runAdHocCommand,
@@ -45,10 +47,13 @@ export default function App() {
   const [autoCheckingMap, setAutoCheckingMap] = useState<Record<string, boolean>>({});
   const [updatingMap, setUpdatingMap] = useState<Record<string, boolean>>({});
   const [historyEntries, setHistoryEntries] = useState<ExecutionHistoryEntry[]>([]);
+  const [activeNodeVersion, setActiveNodeVersion] = useState('');
   const [checkAllRunning, setCheckAllRunning] = useState(false);
+  const [runtimeCheckRunning, setRuntimeCheckRunning] = useState(false);
   const [autoCliCheckRunning, setAutoCliCheckRunning] = useState(false);
   const [autoAppCheckRunning, setAutoAppCheckRunning] = useState(false);
   const checkAllRunningRef = useRef(false);
+  const runtimeCheckRunningRef = useRef(false);
   const autoCheckCycleRunningRef = useRef(false);
   const autoCliCheckRunningRef = useRef(false);
   const autoAppCheckRunningRef = useRef(false);
@@ -56,6 +61,10 @@ export default function App() {
   const manualItems = useMemo(() => enabledItems.filter((item) => isManualItem(item)), [enabledItems]);
   const autoCliItems = useMemo(
     () => enabledItems.filter((item) => !isManualItem(item) && item.kind === 'cli'),
+    [enabledItems]
+  );
+  const runtimeItems = useMemo(
+    () => enabledItems.filter((item) => item.kind === 'runtime'),
     [enabledItems]
   );
   const autoAppItems = useMemo(
@@ -67,6 +76,7 @@ export default function App() {
     [checkingMap, autoCheckingMap]
   );
   const latestCheckAllEntry = useMemo(() => historyEntries.find((entry) => entry.action === 'check-all' || entry.action === 'check-all-skip') ?? null, [historyEntries]);
+  const latestRuntimeCheckEntry = useMemo(() => historyEntries.find((entry) => entry.action === 'check-runtime' || entry.action === 'check-runtime-skip') ?? null, [historyEntries]);
   const latestAutoCliCheckEntry = useMemo(() => historyEntries.find((entry) => entry.action === 'auto-check-cli' || entry.action === 'auto-check-cli-skip') ?? null, [historyEntries]);
   const latestAutoAppCheckEntry = useMemo(() => historyEntries.find((entry) => entry.action === 'auto-check-app' || entry.action === 'auto-check-app-skip') ?? null, [historyEntries]);
   const refreshHistory = async (): Promise<void> => {
@@ -85,11 +95,21 @@ export default function App() {
       console.error('加载最近检查结果失败', error);
     }
   };
+  const refreshActiveNodeVersion = async (): Promise<void> => {
+    try {
+      const version = (await getActiveNodeVersion()).trim();
+      setActiveNodeVersion(version);
+    } catch (error) {
+      console.error('加载当前 Node 版本失败', error);
+      setActiveNodeVersion('');
+    }
+  };
   const reloadConfig = async (): Promise<void> => {
     const nextConfig = normalizeConfig((await loadConfig()) as Partial<AppConfig>);
     setConfig(nextConfig);
     await refreshLatestResults();
     await refreshHistory();
+    await refreshActiveNodeVersion();
     setMessage('配置已加载。');
   };
   useEffect(() => {
@@ -152,6 +172,9 @@ export default function App() {
       const result = await checkItem(itemId);
       setResultMap((prev) => ({ ...prev, [itemId]: result }));
       await refreshHistory();
+      if (itemId === 'node-lts-nvm') {
+        await refreshActiveNodeVersion();
+      }
       setMessage(`已检查：${itemId}`);
     } catch (error) {
       setMessage(`检查失败：${formatError(error)}`);
@@ -159,13 +182,15 @@ export default function App() {
       setCheckingMap((prev) => ({ ...prev, [itemId]: false }));
     }
   };
-  const handleCheckAll = async (): Promise<void> => {
+  const handleCheckAll = async (silent = false): Promise<void> => {
     if (!config || checkAllRunningRef.current) {
       return;
     }
     checkAllRunningRef.current = true;
     setCheckAllRunning(true);
-    setMessage('正在检查全部启用项...');
+    if (!silent) {
+      setMessage('正在检查全部启用项...');
+    }
     try {
       const results = await checkAll();
       const nextMap = results.reduce<Record<string, CheckResult>>((acc, item) => {
@@ -174,10 +199,14 @@ export default function App() {
       }, {});
       setResultMap((prev) => ({ ...prev, ...nextMap }));
       await refreshHistory();
-      setMessage('全量检查完成。');
+      if (!silent) {
+        setMessage('全量检查完成。');
+      }
     } catch (error) {
       const text = formatError(error);
-      setMessage(text.includes('already running') ? '全量检查已跳过：上一轮仍在执行。' : `全量检查失败：${text}`);
+      if (!silent) {
+        setMessage(text.includes('already running') ? '全量检查已跳过：上一轮仍在执行。' : `全量检查失败：${text}`);
+      }
     } finally {
       checkAllRunningRef.current = false;
       setCheckAllRunning(false);
@@ -207,6 +236,33 @@ export default function App() {
       setAutoItemsChecking(itemIds, false);
       autoCliCheckRunningRef.current = false;
       setAutoCliCheckRunning(false);
+    }
+  };
+  const handleRuntimeCheck = async (): Promise<void> => {
+    if (!config || runtimeCheckRunningRef.current) {
+      return;
+    }
+    const itemIds = runtimeItems.map((item) => item.id);
+    runtimeCheckRunningRef.current = true;
+    setRuntimeCheckRunning(true);
+    setAutoItemsChecking(itemIds, true);
+    try {
+      const results = await checkRuntimeItems();
+      if (results.length > 0) {
+        const nextMap = results.reduce<Record<string, CheckResult>>((acc, item) => {
+          acc[item.item_id] = item;
+          return acc;
+        }, {});
+        setResultMap((prev) => ({ ...prev, ...nextMap }));
+      }
+      await refreshHistory();
+      await refreshActiveNodeVersion();
+    } catch (error) {
+      console.error('运行时手动检查失败', error);
+    } finally {
+      setAutoItemsChecking(itemIds, false);
+      runtimeCheckRunningRef.current = false;
+      setRuntimeCheckRunning(false);
     }
   };
   const handleAutoAppCheck = async (): Promise<void> => {
@@ -241,6 +297,9 @@ export default function App() {
     }
     autoCheckCycleRunningRef.current = true;
     try {
+      if (config.auto_check_manual_enabled) {
+        await handleCheckAll(true);
+      }
       await handleAutoCliCheck();
       await handleAutoAppCheck();
     } finally {
@@ -284,13 +343,37 @@ export default function App() {
       setMessage(`主题保存失败：${formatError(error)}`);
     }
   };
+  const handleToggleManualAutoCheck = async (enabled: boolean): Promise<void> => {
+    if (!config || config.auto_check_manual_enabled === enabled) {
+      return;
+    }
+    const nextConfig = { ...config, auto_check_manual_enabled: enabled };
+    setConfig(nextConfig);
+    try {
+      await saveConfig(nextConfig);
+      setMessage(enabled ? '已开启手动区自动检查。' : '已关闭手动区自动检查。');
+    } catch (error) {
+      setMessage(`手动区自动检查设置保存失败：${formatError(error)}`);
+    }
+  };
   return (
     <main>
       <header>
         <h1>PatchPilot</h1>
         <p>{message}</p>
       </header>
-      {config && <SharedCommandsPanel checkIntervalMinutes={config.check_interval_minutes} timeoutSeconds={config.command_timeout_seconds} themeMode={config.theme_mode} commands={config.shared_update_commands} onRunSharedCommand={handleRunSharedCommand} onChangeThemeMode={handleChangeThemeMode} />}
+      {config && (
+        <SharedCommandsPanel
+          checkIntervalMinutes={config.check_interval_minutes}
+          timeoutSeconds={config.command_timeout_seconds}
+          themeMode={config.theme_mode}
+          autoCheckManualEnabled={config.auto_check_manual_enabled}
+          commands={config.shared_update_commands}
+          onRunSharedCommand={handleRunSharedCommand}
+          onChangeThemeMode={handleChangeThemeMode}
+          onToggleManualAutoCheck={handleToggleManualAutoCheck}
+        />
+      )}
       <MonitorPanel
         title="Homebrew 与 Bun（手动区）"
         batchLabel="手动全量检查"
@@ -315,6 +398,20 @@ export default function App() {
         latestCheckAllEntry={latestAutoCliCheckEntry}
         onCheckItem={handleCheckItem}
         onCheckAll={handleAutoCliCheck}
+        onRunUpdate={handleRunUpdate}
+      />
+      <p className="muted">当前系统 Node 版本：{activeNodeVersion || '-'}</p>
+      <MonitorPanel
+        title="开发运行时（手动检查 + 手动更新）"
+        batchLabel="立即检查运行时"
+        items={runtimeItems}
+        resultMap={resultMap}
+        checkingMap={mergedCheckingMap}
+        updatingMap={updatingMap}
+        checkAllRunning={runtimeCheckRunning}
+        latestCheckAllEntry={latestRuntimeCheckEntry}
+        onCheckItem={handleCheckItem}
+        onCheckAll={handleRuntimeCheck}
         onRunUpdate={handleRunUpdate}
       />
       <MonitorPanel

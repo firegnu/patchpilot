@@ -24,12 +24,16 @@ export const checkAll = async (): Promise<CheckResult[]> => invoke('check_all');
 export const checkAutoItems = async (): Promise<CheckResult[]> => invoke('check_auto_items');
 export const checkAutoCliItems = async (): Promise<CheckResult[]> => invoke('check_auto_cli_items');
 export const checkAutoAppItems = async (): Promise<CheckResult[]> => invoke('check_auto_app_items');
+export const checkRuntimeItems = async (): Promise<CheckResult[]> => invoke('check_runtime_items');
 
 export const runItemUpdate = async (itemId: string): Promise<UpdateResult> =>
   invoke('run_item_update', { itemId });
 
 export const runAdHocCommand = async (command: string): Promise<CommandOutput> =>
   invoke('run_ad_hoc_command', { command });
+
+export const getActiveNodeVersion = async (): Promise<string> =>
+  invoke('get_active_node_version');
 
 export const loadHistory = async (limit = 50): Promise<ExecutionHistoryEntry[]> =>
   invoke('load_history', { limit });

@@ -2,6 +2,7 @@
 
 mod commands;
 mod model;
+mod software_catalog;
 mod services;
 
 use std::process::Command as ProcessCommand;
@@ -54,7 +55,7 @@ fn is_manual_item(item: &SoftwareItem) -> bool {
 }
 
 fn is_updatable_menu_item(item: &SoftwareItem) -> bool {
-    item.enabled && (is_manual_item(item) || item.kind == "cli")
+    item.enabled && (is_manual_item(item) || item.kind == "cli" || item.kind == "runtime")
 }
 
 fn parse_local_time(raw: &str) -> String {
@@ -714,8 +715,10 @@ fn main() {
             commands::check_auto_items,
             commands::check_auto_cli_items,
             commands::check_auto_app_items,
+            commands::check_runtime_items,
             commands::run_item_update,
             commands::run_ad_hoc_command,
+            commands::get_active_node_version,
             commands::load_history
         ])
         .run(tauri::generate_context!())
