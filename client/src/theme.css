@@ -16,19 +16,19 @@
 }
 
 :root[data-theme="dark"] {
-  --text-primary: #dbe8ff;
-  --text-secondary: #a8bad8;
-  --text-muted: #91a6cb;
-  --bg-page: linear-gradient(145deg, #0c1426 0%, #111b2f 100%);
-  --bg-panel: #14213a;
-  --border-panel: #2b3d62;
-  --border-table: #2a3b5e;
-  --btn-border: #4f6ea5;
-  --btn-bg: #182744;
-  --btn-text: #dbe8ff;
-  --btn-primary-bg: #4f8fff;
-  --btn-primary-text: #081327;
-  --editor-border: #38507a;
+  --text-primary: #e6e8ee;
+  --text-secondary: #b7bdc9;
+  --text-muted: #959cad;
+  --bg-page: linear-gradient(155deg, #0f1116 0%, #141922 100%);
+  --bg-panel: #1a2029;
+  --border-panel: #2b3340;
+  --border-table: #2a313c;
+  --btn-border: #465063;
+  --btn-bg: #202734;
+  --btn-text: #e6e8ee;
+  --btn-primary-bg: #5a84ff;
+  --btn-primary-text: #f8faff;
+  --editor-border: #384052;
 }
 
 .status-badge {
@@ -63,4 +63,34 @@
   color: #6d4d07;
   border-color: #f3d88b;
   background: #fff7df;
+}
+
+:root[data-theme="dark"] .status-badge {
+  border-color: #334056;
+  color: #c7d0dd;
+  background: #1f2631;
+}
+
+:root[data-theme="dark"] .status-running {
+  color: #9dc2ff;
+  border-color: #37527f;
+  background: #1e2b3f;
+}
+
+:root[data-theme="dark"] .status-success {
+  color: #9fdbb7;
+  border-color: #2f5a45;
+  background: #1c2d25;
+}
+
+:root[data-theme="dark"] .status-failed {
+  color: #ffb4ad;
+  border-color: #744038;
+  background: #32201f;
+}
+
+:root[data-theme="dark"] .status-skipped {
+  color: #f2d083;
+  border-color: #6d5a30;
+  background: #2e281a;
 }
