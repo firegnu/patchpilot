@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use tauri::AppHandle;
 
 use crate::model::{
@@ -5,8 +7,8 @@ use crate::model::{
     UpdateResult,
 };
 use crate::services::{
-    check_all_guard, check_service, config_store, history_events, history_store, result_store,
-    shell_runner,
+    check_all_guard, check_service, config_store, detect_service, history_events, history_store,
+    result_store, shell_runner,
 };
 
 fn default_timeout_seconds(config: &AppConfig) -> u64 {
@@ -291,6 +293,18 @@ pub fn load_history(
 ) -> Result<Vec<ExecutionHistoryEntry>, String> {
     let requested = limit.unwrap_or(50).clamp(1, 200) as usize;
     history_store::load_entries(&app, requested)
+}
+
+fn detect_installed_items_impl(app: &AppHandle) -> Result<HashMap<String, bool>, String> {
+    let config = config_store::load_or_init_config(app)?;
+    Ok(detect_service::detect_all(&config.items))
+}
+
+#[tauri::command]
+pub async fn detect_installed_items(app: AppHandle) -> Result<HashMap<String, bool>, String> {
+    tauri::async_runtime::spawn_blocking(move || detect_installed_items_impl(&app))
+        .await
+        .map_err(|error| format!("detect_installed_items task failed: {error}"))?
 }
 
 pub fn check_manual_items_for_menu(app: &AppHandle) -> Result<Vec<CheckResult>, String> {

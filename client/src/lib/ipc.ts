@@ -37,3 +37,6 @@ export const getActiveNodeVersion = async (): Promise<string> =>
 
 export const loadHistory = async (limit = 50): Promise<ExecutionHistoryEntry[]> =>
   invoke('load_history', { limit });
+
+export const detectInstalledItems = async (): Promise<Record<string, boolean>> =>
+  invoke('detect_installed_items');

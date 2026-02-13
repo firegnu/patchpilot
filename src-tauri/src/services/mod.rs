@@ -2,6 +2,7 @@ pub mod check_all_guard;
 pub mod check_service;
 mod config_migrations;
 pub mod config_store;
+pub mod detect_service;
 pub mod history_events;
 pub mod history_store;
 pub mod result_store;

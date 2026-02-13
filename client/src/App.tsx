@@ -12,6 +12,7 @@ import {
   getActiveNodeVersion,
   loadHistory,
   loadLatestResults,
+  detectInstalledItems,
   runAdHocCommand,
   runItemUpdate,
   saveConfig,
@@ -96,6 +97,7 @@ export default function App() {
   const [updatingMap, setUpdatingMap] = useState<Record<string, boolean>>({});
   const [historyEntries, setHistoryEntries] = useState<ExecutionHistoryEntry[]>([]);
   const [activeNodeVersion, setActiveNodeVersion] = useState('');
+  const [installedMap, setInstalledMap] = useState<Record<string, boolean>>({});
   const [checkAllRunning, setCheckAllRunning] = useState(false);
   const [runtimeCheckRunning, setRuntimeCheckRunning] = useState(false);
   const [autoCliCheckRunning, setAutoCliCheckRunning] = useState(false);
@@ -113,7 +115,10 @@ export default function App() {
   const autoCheckCycleRunningRef = useRef(false);
   const autoCliCheckRunningRef = useRef(false);
   const autoAppCheckRunningRef = useRef(false);
-  const enabledItems = useMemo(() => config?.items.filter((item) => item.enabled) ?? [], [config]);
+  const enabledItems = useMemo(
+    () => config?.items.filter((item) => item.enabled && installedMap[item.id] !== false) ?? [],
+    [config, installedMap]
+  );
   const manualItems = useMemo(() => enabledItems.filter((item) => isManualItem(item)), [enabledItems]);
   const autoCliItems = useMemo(
     () => enabledItems.filter((item) => !isManualItem(item) && item.kind === 'cli'),
@@ -163,6 +168,9 @@ export default function App() {
   const reloadConfig = async (): Promise<void> => {
     const nextConfig = normalizeConfig((await loadConfig()) as Partial<AppConfig>);
     setConfig(nextConfig);
+    detectInstalledItems()
+      .then(setInstalledMap)
+      .catch((error) => console.error('检测安装状态失败', error));
     await refreshLatestResults();
     await refreshHistory();
     await refreshActiveNodeVersion();

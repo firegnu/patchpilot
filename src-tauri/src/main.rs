@@ -719,7 +719,8 @@ fn main() {
             commands::run_item_update,
             commands::run_ad_hoc_command,
             commands::get_active_node_version,
-            commands::load_history
+            commands::load_history,
+            commands::detect_installed_items
         ])
         .run(tauri::generate_context!())
         .expect("error while running patchpilot");
