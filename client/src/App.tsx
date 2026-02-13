@@ -88,6 +88,16 @@ const formatDurationLabel = (value: number | null): string => {
   return `${(value / 1000).toFixed(1)} s`;
 };
 
+const getLatestCheckedAt = (map: Record<string, CheckResult>): string | null => {
+  let latest: string | null = null;
+  for (const r of Object.values(map)) {
+    if (r.checked_at && (!latest || r.checked_at > latest)) {
+      latest = r.checked_at;
+    }
+  }
+  return latest;
+};
+
 export default function App() {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [message, setMessage] = useState('正在加载配置...');
@@ -113,6 +123,7 @@ export default function App() {
   const checkAllRunningRef = useRef(false);
   const runtimeCheckRunningRef = useRef(false);
   const autoCheckCycleRunningRef = useRef(false);
+  const handleAutoCheckCycleRef = useRef<() => Promise<void>>(() => Promise.resolve());
   const autoCliCheckRunningRef = useRef(false);
   const autoAppCheckRunningRef = useRef(false);
   const enabledItems = useMemo(
@@ -180,20 +191,46 @@ export default function App() {
     void reloadConfig().catch((error) => setMessage(`加载配置失败：${formatError(error)}`));
   }, []);
   useEffect(() => (config ? applyThemeMode(config.theme_mode) : undefined), [config?.theme_mode]);
+
+  const schedulerEnabled = config?.auto_check_enabled ?? false;
+  const schedulerInterval = config?.check_interval_minutes ?? 480;
+
   useEffect(() => {
-    if (!config || !config.auto_check_enabled) {
+    if (!schedulerEnabled) {
       setAutoCycleInsight((prev) => ({ ...prev, running: false, nextRunAt: null }));
       return;
     }
-    const intervalMs = Math.max(config.check_interval_minutes, 1) * 60 * 1000;
+
+    const intervalMs = Math.max(schedulerInterval, 1) * 60 * 1000;
+    const lastCheckTime = getLatestCheckedAt(resultMap);
+    const elapsed = lastCheckTime
+      ? Date.now() - new Date(lastCheckTime).getTime()
+      : Infinity;
+    const initialDelay = elapsed >= intervalMs ? 0 : intervalMs - elapsed;
+
     setAutoCycleInsight((prev) => ({
       ...prev,
-      nextRunAt: new Date(Date.now() + intervalMs).toISOString(),
+      nextRunAt: new Date(Date.now() + initialDelay).toISOString(),
     }));
-    void handleAutoCheckCycle();
-    const timer = setInterval(() => void handleAutoCheckCycle(), intervalMs);
-    return () => clearInterval(timer);
-  }, [config]);
+
+    let regularTimer: ReturnType<typeof setInterval> | undefined;
+
+    const kickoff = () => {
+      void handleAutoCheckCycleRef.current();
+      regularTimer = setInterval(
+        () => void handleAutoCheckCycleRef.current(),
+        intervalMs,
+      );
+    };
+
+    const delayTimer =
+      initialDelay > 0 ? setTimeout(kickoff, initialDelay) : (kickoff(), undefined);
+
+    return () => {
+      if (delayTimer) clearTimeout(delayTimer);
+      if (regularTimer) clearInterval(regularTimer);
+    };
+  }, [schedulerEnabled, schedulerInterval]);
   useEffect(() => {
     let unlistenConfig: (() => void) | undefined;
     let unlistenLatest: (() => void) | undefined;
@@ -426,6 +463,8 @@ export default function App() {
       autoCheckCycleRunningRef.current = false;
     }
   };
+  handleAutoCheckCycleRef.current = handleAutoCheckCycle;
+
   const handleRunUpdate = async (item: SoftwareItem): Promise<void> => {
     setUpdatingMap((prev) => ({ ...prev, [item.id]: true }));
     setMessage(`正在更新 ${item.name}...`);
