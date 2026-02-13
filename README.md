@@ -18,6 +18,7 @@ PatchPilot 是一个 macOS menubar 桌面应用（Tauri + React），用于集�
   - `Homebrew/Bun`：手动检查 + 手动更新
   - `CLI 工具`：自动检查 + 手动更新
   - `App`：自动检查 + 手动单项检查（不提供更新按钮）
+- 启动时自动检测软件安装状态，未安装的项目自动隐藏。
 - 支持主题切换（浅色 / 深色 / 跟随系统）。
 
 ## 技术栈
@@ -49,8 +50,10 @@ PatchPilot/
     │       ├── check_all_guard.rs # check_all 防重入并发锁
     │       ├── check_service.rs   # 检查逻辑（版本对比/命令匹配）
     │       ├── config_store.rs    # 配置文件读写与路径解析
+    │       ├── detect_service.rs  # 启动时并行检测软件安装状态
     │       ├── history_events.rs  # 历史事件构造与安全写入
     │       ├── history_store.rs   # 本地执行历史存储
+    │       ├── result_store.rs    # 最近检查结果持久化
     │       └── shell_runner.rs    # 统一 shell 执行器（zsh -lc）
     ├── tauri.conf.json
     └── Cargo.toml
@@ -64,12 +67,16 @@ PatchPilot/
 - `load_config`
 - `save_config`
 - `load_latest_results`
+- `detect_installed_items`
 - `check_item`
 - `check_all`
+- `check_auto_items`
 - `check_auto_cli_items`
 - `check_auto_app_items`
+- `check_runtime_items`
 - `run_item_update`
 - `run_ad_hoc_command`
+- `get_active_node_version`
 - `load_history`
 
 对应封装位于 `client/src/lib/ipc.ts`。
