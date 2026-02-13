@@ -154,15 +154,6 @@ fn check_runtime_items_impl(app: &AppHandle) -> Result<Vec<CheckResult>, String>
     )
 }
 
-fn check_everything_impl(app: &AppHandle) -> Result<Vec<CheckResult>, String> {
-    let mut results = Vec::new();
-    results.extend(check_all_impl(app)?);
-    results.extend(check_runtime_items_impl(app)?);
-    results.extend(check_auto_cli_items_impl(app)?);
-    results.extend(check_auto_app_items_impl(app)?);
-    Ok(results)
-}
-
 fn run_item_update_impl(app: &AppHandle, item_id: &str) -> Result<UpdateResult, String> {
     let config = config_store::load_or_init_config(app)?;
     let timeout_seconds = default_timeout_seconds(&config);
@@ -307,26 +298,3 @@ pub async fn detect_installed_items(app: AppHandle) -> Result<HashMap<String, bo
         .map_err(|error| format!("detect_installed_items task failed: {error}"))?
 }
 
-pub fn check_manual_items_for_menu(app: &AppHandle) -> Result<Vec<CheckResult>, String> {
-    check_all_impl(app)
-}
-
-pub fn check_single_item_for_menu(app: &AppHandle, item_id: &str) -> Result<CheckResult, String> {
-    check_item_impl(app, item_id)
-}
-
-pub fn check_cli_items_for_menu(app: &AppHandle) -> Result<Vec<CheckResult>, String> {
-    check_auto_cli_items_impl(app)
-}
-
-pub fn check_app_items_for_menu(app: &AppHandle) -> Result<Vec<CheckResult>, String> {
-    check_auto_app_items_impl(app)
-}
-
-pub fn check_everything_for_menu(app: &AppHandle) -> Result<Vec<CheckResult>, String> {
-    check_everything_impl(app)
-}
-
-pub fn run_item_update_for_menu(app: &AppHandle, item_id: &str) -> Result<UpdateResult, String> {
-    run_item_update_impl(app, item_id)
-}
