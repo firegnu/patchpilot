@@ -1,9 +1,53 @@
 use std::io::{BufRead, BufReader, Read};
 use std::process::{Command, Stdio};
+use std::sync::OnceLock;
 use std::thread;
 use std::time::{Duration, Instant};
 
 use crate::model::CommandOutput;
+
+const PATH_RESOLVE_TIMEOUT: Duration = Duration::from_secs(5);
+
+fn resolve_interactive_path() -> Option<String> {
+    let mut child = Command::new("zsh")
+        .args(["-ilc", "printf '%s' \"$PATH\""])
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .ok()?;
+
+    let stdout_pipe = child.stdout.take()?;
+    let reader = thread::spawn(move || {
+        let mut buf = String::new();
+        BufReader::new(stdout_pipe).read_to_string(&mut buf).ok()?;
+        Some(buf)
+    });
+
+    let start = Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => break,
+            Ok(None) if start.elapsed() >= PATH_RESOLVE_TIMEOUT => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return None;
+            }
+            Ok(None) => thread::sleep(Duration::from_millis(50)),
+            Err(_) => return None,
+        }
+    }
+    let _ = child.wait();
+
+    let path = reader.join().ok()?.unwrap_or_default();
+    let trimmed = path.trim().to_string();
+    if trimmed.is_empty() { None } else { Some(trimmed) }
+}
+
+fn interactive_path() -> Option<&'static String> {
+    static PATH: OnceLock<Option<String>> = OnceLock::new();
+    PATH.get_or_init(resolve_interactive_path).as_ref()
+}
 
 fn append_line(buffer: &mut String, text: &str) {
     if !buffer.is_empty() {
@@ -49,11 +93,15 @@ pub fn run_shell_command(
     timeout_seconds: u64,
 ) -> Result<CommandOutput, String> {
     let started = Instant::now();
-    let mut child = Command::new("zsh")
-        .arg("-lc")
+    let mut cmd = Command::new("zsh");
+    cmd.arg("-lc")
         .arg(command)
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+        .stderr(Stdio::piped());
+    if let Some(path) = interactive_path() {
+        cmd.env("PATH", path);
+    }
+    let mut child = cmd
         .spawn()
         .map_err(|error| format!("failed to execute command: {error}"))?;
 
